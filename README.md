@@ -71,3 +71,32 @@ export default defineConfig([
   },
 ])
 ```
+
+## Autenticación con Google (OAuth)
+
+Se agregó una pantalla básica de login usando `@react-oauth/google`.
+
+### Configuración
+1. Copia el archivo `.env.example` a `.env.local`.
+2. Coloca tu Client ID de OAuth en `VITE_GOOGLE_CLIENT_ID`.
+3. Inicia la app: `npm run dev`.
+
+### Seguridad
+- El Client Secret NO debe incluirse en el frontend ni en variables expuestas. Mantén solo el Client ID.
+- `.env.local` está ignorado por git (ver `.gitignore`).
+- Si necesitas usar el Client Secret, hazlo en un backend seguro (intercambio de tokens, refresh, etc.).
+
+### Flujo implementado
+- Botón de Login con Google (`GoogleLogin`).
+- Uso de OneTap cuando es posible (`useOneTap`).
+- Al éxito se guarda el credential (ID token) en `localStorage` bajo la clave `google_credential`.
+- Se decodifica el token para mostrar `name`, `email` y `picture`.
+- Botón de logout que limpia almacenamiento y llama `googleLogout()`.
+
+### Extender
+- Validar expiración del token y refrescar mediante backend.
+- Añadir protección de rutas (wrapper que verifique presencia del token antes de renderizar páginas privadas).
+- Reemplazar `localStorage` por `sessionStorage` si se desea caducidad al cerrar pestaña.
+
+### Nota
+El token almacenado es un ID token (JWT). No lo uses directamente para autorizar llamadas críticas sin validarlo en servidor.
