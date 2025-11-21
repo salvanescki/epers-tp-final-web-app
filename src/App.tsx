@@ -1,7 +1,7 @@
 import './App.css'
 import { Routes, Route } from 'react-router-dom'
 import { Login } from './components/Login'
-import { Dashboard } from './components/Dashboard'
+import { ClassSelector } from './components/ClassSelector'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 
 function App() {
@@ -12,7 +12,7 @@ function App() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <ClassSelector />
           </ProtectedRoute>
         }
       />
