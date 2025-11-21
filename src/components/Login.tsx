@@ -43,13 +43,13 @@ export const Login = () => {
             <h1 className="text-2xl text-primary mb-2 pixel-title">GHOST WARS</h1>
             <div className="h-1 bg-primary" />
           </div>
-          <p className="text-xs text-muted-foreground tracking-widest">{">"} SISTEMA INICIADO</p>
+          <p className="text-xs text-muted-foreground tracking-widest">{">"} THE LORDS OF THE STRINGS</p>
         </div>
 
-        {/* Tarjeta Login */}
-        <div className="p-6 bg-card border-2 border-primary shadow-retro space-y-6">
-          <div className="space-y-4">
-            <p className="text-xs text-muted-foreground tracking-widest">AUTENTICACIÓN REQUERIDA:</p>
+        {/* Tarjeta Login simplificada sin listado de clases */}
+        <div className="p-6 bg-card border-2 border-primary shadow-retro space-y-5">
+          <p className="text-xs text-muted-foreground tracking-widest">AUTENTICACIÓN REQUERIDA:</p>
+          <div className="flex justify-center">
             <GoogleLogin
               onSuccess={(response) => {
                 const cred = (response as any)?.credential
@@ -63,32 +63,10 @@ export const Login = () => {
               }}
               useOneTap
             />
-            <p className="text-[0.65rem] text-muted-foreground leading-relaxed text-center">
-              Guardamos tu <span className="text-primary">ID Token</span> localmente. Expira automáticamente.
-            </p>
           </div>
-
-          {/* Clases disponibles */}
-          <div className="pt-6 border-t border-border space-y-4">
-            <p className="text-xs text-muted-foreground tracking-widest">CLASES DISPONIBLES:</p>
-            <div className="grid gap-3">
-              <div className="flex items-start gap-3 p-3 bg-muted border border-border">
-                <span className="text-primary text-lg">👻</span>
-                <div>
-                  <p className="text-xs text-foreground mb-1">NIGHTBRINGER</p>
-                  <p className="text-[0.6rem] text-muted-foreground leading-relaxed">Invoca espíritus oscuros</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 p-3 bg-muted border border-border">
-                <span className="text-accent text-lg">⚔️</span>
-                <div>
-                  <p className="text-xs text-foreground mb-1">LIGHTBRINGER</p>
-                  <p className="text-[0.6rem] text-muted-foreground leading-relaxed">Purifica áreas cercanas</p>
-                </div>
-              </div>
-            </div>
-            <p className="text-center text-[0.55rem] text-muted-foreground tracking-widest">{">"} PRESS START TO PLAY {"<"}</p>
-          </div>
+          <p className="text-[0.65rem] text-muted-foreground leading-relaxed text-center">
+            Guardamos tu <span className="text-primary">ID Token</span> localmente. Expira automáticamente.
+          </p>
         </div>
       </div>
     </div>

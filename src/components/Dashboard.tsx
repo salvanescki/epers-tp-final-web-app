@@ -66,7 +66,7 @@ export const Dashboard = () => {
           </button>
         </div>
 
-        <p className="text-center text-[0.5rem] text-muted-foreground tracking-widest">{">"} GHOST WARS RETRO MODE {"<"}</p>
+        <p className="text-center text-[0.5rem] text-muted-foreground tracking-widest">{">"} THE LORDS OF THE STRINGS {"<"}</p>
       </div>
     </div>
   )
