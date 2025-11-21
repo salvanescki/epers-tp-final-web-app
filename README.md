@@ -94,9 +94,59 @@ Se agregó una pantalla básica de login usando `@react-oauth/google`.
 - Botón de logout que limpia almacenamiento y llama `googleLogout()`.
 
 ### Extender
-- Validar expiración del token y refrescar mediante backend.
-- Añadir protección de rutas (wrapper que verifique presencia del token antes de renderizar páginas privadas).
+- Protección de rutas y expiración ya implementadas (ver abajo).
+- Refrescar token mediante backend (pendiente de implementación si se requiere flujo server-side).
 - Reemplazar `localStorage` por `sessionStorage` si se desea caducidad al cerrar pestaña.
 
 ### Nota
 El token almacenado es un ID token (JWT). No lo uses directamente para autorizar llamadas críticas sin validarlo en servidor.
+
+## Protección de rutas y expiración
+
+Se añadió un contexto de autenticación en `src/auth/AuthContext.tsx` que:
+- Almacena el ID token y perfil decodificado.
+- Calcula expiración usando el campo `exp` del JWT.
+- Programa logout automático al vencer el token.
+
+### Hook
+`useAuth` expone: `credential`, `profile`, `isAuthenticated`, `isExpired`, `login(cred)`, `logout()`.
+
+### Ruta protegida
+`ProtectedRoute` redirige a `/` si la sesión no es válida o expiró.
+
+### Rutas
+- `/` -> `Login`.
+- `/dashboard` -> `Dashboard` (protegida).
+
+### Flujo de expiración
+Cuando `exp` se cumple, se hace `logout()`, se limpia localStorage y cualquier acceso a rutas protegidas redirige al login.
+
+### Extensión futura
+- Implementar refresh tokens en backend para sesiones largas.
+- Añadir manejo de roles/claims si se necesitan autorizaciones adicionales.
+
+## Estilos Creepy Retro
+
+Se integró Tailwind CSS para estilizar la pantalla de login con una estética retro oscura.
+
+### Instalación rápida
+```
+npm install -D tailwindcss postcss autoprefixer clsx tailwind-merge
+```
+
+Archivos agregados:
+- `tailwind.config.js` (paleta `creepy` y animaciones flicker + scanlines).
+- `postcss.config.js`.
+- `src/index.css` reemplazado con directivas Tailwind y variables de tema.
+- Utilidad `src/lib/utils.ts` para función `cn`.
+- Componentes UI adaptados: `Login.tsx`, `Dashboard.tsx`, `GhostLoader.tsx`.
+
+### Customización
+- Cambia colores en `tailwind.config.js` bajo `colors.creepy`.
+- Ajusta efectos de scanlines en `.scanlines` dentro de `index.css`.
+- Fuente pixel: Google Font "Press Start 2P".
+
+### Buenas prácticas
+- Mantener lógica de auth separada del estilado (contexto vs clases Tailwind).
+- Evitar exponer secretos en estilos o HTML.
+
