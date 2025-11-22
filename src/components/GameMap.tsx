@@ -3,12 +3,66 @@ import { useAuth } from '../auth/useAuth'
 import { useNavigate } from 'react-router-dom'
 
 // Componente principal del mapa de juego
-// Usa una imagen de fondo (agregar en /public/game-map-bg.png o ajustar ruta)
+// Usa el mapa SVG ubicado en /public/mapa.svg como fondo
 export const GameMap = () => {
   const { profile, selectedClass, logout, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const avatarRef = useRef<HTMLButtonElement | null>(null)
+  const mapRef = useRef<HTMLDivElement | null>(null)
+
+  // estado de zoom/pan
+  const [scale, setScale] = useState(1)
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const isPanningRef = useRef(false)
+  const lastPosRef = useRef({ x: 0, y: 0 })
+  const lastTapRef = useRef<number | null>(null)
+
+  // limita el desplazamiento para que siempre haya parte del mapa visible
+  const clampOffset = (next: { x: number; y: number }) => {
+    const container = mapRef.current
+    if (!container) return next
+
+    const vw = container.clientWidth
+    const vh = container.clientHeight
+
+    // relación de aspecto aproximada del mapa (ajustable si cambiara el SVG)
+    const mapAspect = 16 / 9
+    const viewportAspect = vw / vh
+
+    // tamaño "virtual" del mapa según bg-contain y zoom
+    let mapWidth: number
+    let mapHeight: number
+    if (viewportAspect > mapAspect) {
+      // viewport más ancho que el mapa: altura llena, ancho se ajusta
+      mapHeight = vh * scale
+      mapWidth = mapHeight * mapAspect
+    } else {
+      // viewport más alto que el mapa: ancho llena, altura se ajusta
+      mapWidth = vw * scale
+      mapHeight = mapWidth / mapAspect
+    }
+
+    // siempre dejamos al menos una franja del mapa visible
+    const visibleMarginX = vw * 0.4
+    const visibleMarginY = vh * 0.4
+
+    const maxX = Math.max(0, (mapWidth - visibleMarginX) / 2)
+    const maxY = Math.max(0, (mapHeight - visibleMarginY) / 2)
+
+    return {
+      x: Math.max(-maxX, Math.min(maxX, next.x)),
+      y: Math.max(-maxY, Math.min(maxY, next.y)),
+    }
+  }
+
+  const applyZoom = (factor: number) => {
+    setScale((prev) => {
+      const next = Math.min(3, Math.max(0.7, prev * factor))
+      return next
+    })
+  }
 
   // Redirigir si no hay clase elegida
   useEffect(() => {
@@ -24,7 +78,14 @@ export const GameMap = () => {
   // Cerrar menú contextual al hacer clic fuera
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node | null
+
+      // ignorar clics sobre el avatar para que su onClick maneje el toggle
+      if (avatarRef.current && target && avatarRef.current.contains(target)) {
+        return
+      }
+
+      if (menuRef.current && !menuRef.current.contains(target as Node)) {
         setMenuOpen(false)
       }
     }
@@ -40,18 +101,73 @@ export const GameMap = () => {
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-[#222] text-foreground font-sans">
-      {/* Fondo del mapa */}
+      {/* Lienzo del mapa con zoom/pan */}
       <div
-        className="absolute inset-0 bg-center bg-no-repeat bg-cover"
-        style={{ backgroundImage: "url('/game-map-bg.png')" }}
-      />
+        ref={mapRef}
+        className="absolute inset-0 touch-pan-y touch-none cursor-grab active:cursor-grabbing"
+        onWheel={(e) => {
+          e.preventDefault()
+          const delta = -e.deltaY
+          const zoomFactor = delta > 0 ? 1.1 : 0.9
+          applyZoom(zoomFactor)
+        }}
+        onMouseDown={(e) => {
+          isPanningRef.current = true
+          lastPosRef.current = { x: e.clientX, y: e.clientY }
+        }}
+        onMouseMove={(e) => {
+          if (!isPanningRef.current) return
+          const dx = e.clientX - lastPosRef.current.x
+          const dy = e.clientY - lastPosRef.current.y
+          lastPosRef.current = { x: e.clientX, y: e.clientY }
+          setOffset((prev) => clampOffset({ x: prev.x + dx, y: prev.y + dy }))
+        }}
+        onMouseUp={() => { isPanningRef.current = false }}
+        onMouseLeave={() => { isPanningRef.current = false }}
+        onTouchStart={(e) => {
+          if (e.touches.length === 1) {
+            const t = e.touches[0]
 
-      {/* Overlay UI */}
+            // doble toque para hacer zoom
+            const now = Date.now()
+            if (lastTapRef.current && now - lastTapRef.current < 300) {
+              applyZoom(1.3)
+              lastTapRef.current = null
+              return
+            }
+            lastTapRef.current = now
+
+            isPanningRef.current = true
+            lastPosRef.current = { x: t.clientX, y: t.clientY }
+          }
+        }}
+        onTouchMove={(e) => {
+          if (!isPanningRef.current || e.touches.length !== 1) return
+          const t = e.touches[0]
+          const dx = t.clientX - lastPosRef.current.x
+          const dy = t.clientY - lastPosRef.current.y
+          lastPosRef.current = { x: t.clientX, y: t.clientY }
+          setOffset((prev) => clampOffset({ x: prev.x + dx, y: prev.y + dy }))
+        }}
+        onTouchEnd={() => { isPanningRef.current = false }}
+      >
+        <div
+          className="w-full h-full bg-center bg-no-repeat bg-contain"
+          style={{
+            backgroundImage: "url('/mapa.svg')",
+            transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+            transformOrigin: 'center center',
+          }}
+        />
+      </div>
+
+      {/* Overlay UI (avatar fijo y menú) */}
       <div className="relative z-10 w-full h-full pointer-events-none">
         {/* Avatar flotante arriba izquierda */}
         <div className="absolute top-4 left-4 pointer-events-auto">
           <button
-            onClick={() => setMenuOpen((o) => !o)}
+            ref={avatarRef}
+            onClick={() => setMenuOpen((prev) => !prev)}
             className="w-14 h-14 rounded-full border-2 border-primary overflow-hidden shadow-retro bg-card hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
             style={{ imageRendering: 'pixelated' }}
             aria-haspopup="true"
@@ -74,7 +190,22 @@ export const GameMap = () => {
               <p className="text-muted-foreground break-all" title={profile.email}>{profile.email}</p>
               <div className="border-t border-border pt-2 flex flex-col gap-1">
                 <p className="text-xs text-muted-foreground tracking-widest">CLASE:</p>
-                <p className="text-accent text-[0.65rem] font-bold">{selectedClass?.toUpperCase()}</p>
+                <div className="flex items-center justify-between gap-2 mt-1">
+                  <p className="text-accent text-[0.65rem] font-bold">{selectedClass?.toUpperCase()}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      navigate('/class')
+                    }}
+                    className="relative w-7 h-7 rounded-full border-2 border-accent flex items-center justify-center text-accent hover:bg-accent/10 hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                    title="Cambiar de clase"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
               <button
                 onClick={() => { setMenuOpen(false); logout(); }}
@@ -84,6 +215,24 @@ export const GameMap = () => {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Controles de zoom estilo Google Maps */}
+        <div className="absolute bottom-4 right-4 pointer-events-auto flex flex-col bg-card border-2 border-primary shadow-retro">
+          <button
+            type="button"
+            onClick={() => applyZoom(1.15)}
+            className="w-10 h-10 flex items-center justify-center text-primary text-lg border-b border-primary hover:bg-primary/10"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => applyZoom(0.85)}
+            className="w-10 h-10 flex items-center justify-center text-primary text-lg hover:bg-primary/10"
+          >
+            −
+          </button>
         </div>
 
         {/* Texto de debug */}
