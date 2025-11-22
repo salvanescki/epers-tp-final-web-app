@@ -190,7 +190,22 @@ export const GameMap = () => {
               <p className="text-muted-foreground break-all" title={profile.email}>{profile.email}</p>
               <div className="border-t border-border pt-2 flex flex-col gap-1">
                 <p className="text-xs text-muted-foreground tracking-widest">CLASE:</p>
-                <p className="text-accent text-[0.65rem] font-bold">{selectedClass?.toUpperCase()}</p>
+                <div className="flex items-center justify-between gap-2 mt-1">
+                  <p className="text-accent text-[0.65rem] font-bold">{selectedClass?.toUpperCase()}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      navigate('/class')
+                    }}
+                    className="relative w-7 h-7 rounded-full border-2 border-accent flex items-center justify-center text-accent hover:bg-accent/10 hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                    title="Cambiar de clase"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
               <button
                 onClick={() => { setMenuOpen(false); logout(); }}
