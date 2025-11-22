@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import { Login } from './components/Login'
 import { ClassSelector } from './components/ClassSelector'
 import { ProtectedRoute } from './auth/ProtectedRoute'
+import { GameMap } from './components/GameMap'
 
 function App() {
   return (
@@ -13,6 +14,14 @@ function App() {
         element={
           <ProtectedRoute>
             <ClassSelector />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/game"
+        element={
+          <ProtectedRoute>
+            <GameMap />
           </ProtectedRoute>
         }
       />

@@ -15,11 +15,14 @@ interface AuthContextValue {
   isAuthenticated: boolean
   isExpired: boolean
   initialized: boolean
+  selectedClass: string | null
+  setSelectedClass: (cls: string | null) => void
   login: (credential: string) => void
   logout: () => void
 }
 
 const LOCAL_KEY = 'google_credential'
+const LOCAL_CLASS_KEY = 'selected_player_class'
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
@@ -27,6 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [credential, setCredential] = useState<string | null>(null)
   const [profile, setProfile] = useState<GoogleJwtPayload | null>(null)
   const [isExpired, setIsExpired] = useState<boolean>(false)
+  const [selectedClass, setSelectedClassState] = useState<string | null>(null)
   const timeoutRef = useRef<number | null>(null)
   const [initialized, setInitialized] = useState(false)
 
@@ -61,8 +65,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     clearTimer()
     googleLogout()
     localStorage.removeItem(LOCAL_KEY)
+    localStorage.removeItem(LOCAL_CLASS_KEY)
     setCredential(null)
     setProfile(null)
+    setSelectedClassState(null)
     setIsExpired(false)
   }, [])
 
@@ -96,9 +102,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         logout()
       }
     }
+    const storedClass = localStorage.getItem(LOCAL_CLASS_KEY)
+    if (storedClass) {
+      setSelectedClassState(storedClass)
+    }
     setInitialized(true)
     return () => clearTimer()
   }, [evaluateExpiration, logout])
+
+  const setSelectedClass = useCallback((cls: string | null) => {
+    setSelectedClassState(cls)
+    if (cls) {
+      localStorage.setItem(LOCAL_CLASS_KEY, cls)
+    } else {
+      localStorage.removeItem(LOCAL_CLASS_KEY)
+    }
+  }, [])
 
   const value: AuthContextValue = useMemo(() => ({
     credential,
@@ -106,9 +125,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isAuthenticated: !!credential && !!profile && !isExpired,
     isExpired,
     initialized,
+    selectedClass,
+    setSelectedClass,
     login,
     logout,
-  }), [credential, profile, isExpired, initialized, login, logout])
+  }), [credential, profile, isExpired, initialized, selectedClass, setSelectedClass, login, logout])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

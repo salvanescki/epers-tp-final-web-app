@@ -9,9 +9,8 @@ import 'react-toastify/dist/ReactToastify.css'
 export type PlayerClass = 'nightbringer' | 'lightbringer'
 
 export const ClassSelector = () => {
-  const { profile, logout, isExpired, isAuthenticated } = useAuth()
+  const { profile, logout, isExpired, isAuthenticated, selectedClass, setSelectedClass } = useAuth()
   const navigate = useNavigate()
-  const [selectedClass, setSelectedClass] = useState<PlayerClass | null>(null)
   const [starting, setStarting] = useState(false)
 
   useEffect(() => {
@@ -61,25 +60,8 @@ export const ClassSelector = () => {
     }
     setStarting(true)
     setTimeout(() => {
-      // Placeholder: aquí se podría navegar al juego real
-      // navigate(`/game?class=${selectedClass}`)
-      // Por ahora solo log
-      // eslint-disable-next-line no-console
-      console.log('Iniciando juego como', selectedClass)
       setStarting(false)
-      toast.success(`Clase ${selectedClass.toUpperCase()} seleccionada. Iniciando...`, {
-        position: 'top-center',
-        autoClose: 2000,
-        theme: 'dark',
-        style: {
-          fontFamily: 'Press Start 2P',
-          fontSize: '10px',
-          letterSpacing: '0.15em',
-          background: 'oklch(0.18 0.03 10)',
-          border: '2px solid oklch(0.65 0.15 50)',
-          color: 'oklch(0.95 0.05 10)'
-        }
-      })
+      navigate('/game')
     }, 1200)
   }
 
