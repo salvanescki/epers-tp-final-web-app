@@ -1,68 +1,152 @@
+@import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+/* Dark variant handled via .dark class variable overrides */
+
+/* Paleta retro burgundy arcade con OKLCH */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --background: oklch(0.12 0.02 10);
+  --foreground: oklch(0.95 0.05 10);
+  --card: oklch(0.18 0.03 10);
+  --card-foreground: oklch(0.95 0.05 10);
+  --popover: oklch(0.18 0.03 10);
+  --popover-foreground: oklch(0.95 0.05 10);
+  --primary: oklch(0.45 0.15 10);
+  --primary-foreground: oklch(0.95 0 0);
+  --secondary: oklch(0.55 0.12 30);
+  --secondary-foreground: oklch(0.95 0 0);
+  --muted: oklch(0.25 0.03 10);
+  --muted-foreground: oklch(0.6 0.05 10);
+  --accent: oklch(0.65 0.15 50);
+  --accent-foreground: oklch(0.12 0.02 10);
+  --destructive: oklch(0.55 0.25 20);
+  --destructive-foreground: oklch(0.95 0 0);
+  --border: oklch(0.3 0.08 10);
+  --input: oklch(0.25 0.03 10);
+  --ring: oklch(0.45 0.15 10);
+  --chart-1: oklch(0.45 0.15 10);
+  --chart-2: oklch(0.55 0.12 30);
+  --chart-3: oklch(0.65 0.15 50);
+  --chart-4: oklch(0.6 0.2 350);
+  --chart-5: oklch(0.55 0.25 20);
+  --radius: 0.125rem;
+  --sidebar: oklch(0.18 0.03 10);
+  --sidebar-foreground: oklch(0.95 0.05 10);
+  --sidebar-primary: oklch(0.45 0.15 10);
+  --sidebar-primary-foreground: oklch(0.95 0 0);
+  --sidebar-accent: oklch(0.25 0.03 10);
+  --sidebar-accent-foreground: oklch(0.95 0.05 10);
+  --sidebar-border: oklch(0.3 0.08 10);
+  --sidebar-ring: oklch(0.45 0.15 10);
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+.dark {
+  --background: oklch(0.1 0.02 10);
+  --foreground: oklch(0.98 0.05 10);
+  --card: oklch(0.15 0.03 10);
+  --card-foreground: oklch(0.98 0.05 10);
+  --popover: oklch(0.15 0.03 10);
+  --popover-foreground: oklch(0.98 0.05 10);
+  --primary: oklch(0.5 0.15 10);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.22 0.03 10);
+  --secondary-foreground: oklch(0.98 0.05 10);
+  --muted: oklch(0.22 0.03 10);
+  --muted-foreground: oklch(0.65 0.05 10);
+  --accent: oklch(0.7 0.15 50);
+  --accent-foreground: oklch(0.1 0.02 10);
+  --destructive: oklch(0.5 0.25 20);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.28 0.08 10);
+  --input: oklch(0.22 0.03 10);
+  --ring: oklch(0.5 0.15 10);
+  --chart-1: oklch(0.5 0.15 10);
+  --chart-2: oklch(0.6 0.12 30);
+  --chart-3: oklch(0.75 0.15 50);
+  --chart-4: oklch(0.65 0.2 350);
+  --chart-5: oklch(0.6 0.25 20);
+  --sidebar: oklch(0.15 0.03 10);
+  --sidebar-foreground: oklch(0.98 0.05 10);
+  --sidebar-primary: oklch(0.5 0.15 10);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.22 0.03 10);
+  --sidebar-accent-foreground: oklch(0.98 0.05 10);
+  --sidebar-border: oklch(0.28 0.08 10);
+  --sidebar-ring: oklch(0.5 0.15 10);
 }
 
+/* Font family variables */
+:root {
+  --font-sans: "Press Start 2P", monospace;
+  --font-mono: "Press Start 2P", monospace;
+}
+
+html, body, #root { height: 100%; }
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+* {
+  border-color: var(--border);
+  outline-color: var(--ring);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+.scanlines { position: relative; }
+.scanlines::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 50;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+@keyframes flickerRetro {
+  0%,100% { opacity:1 }
+  10% { opacity:.9 }
+  20% { opacity:.4 }
+  30% { opacity:.9 }
+  40% { opacity:.3 }
+  50% { opacity:.8 }
+  60% { opacity:.95 }
+  70% { opacity:.2 }
+  80% { opacity:.7 }
+  90% { opacity:.9 }
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
+.pixel-title { animation: flickerRetro 3s linear infinite; }
+
+/* Variable to utility mappings so we can use Tailwind-like class names */
+.bg-background { background-color: var(--background); }
+.bg-card { background-color: var(--card); }
+.bg-popover { background-color: var(--popover); }
+.bg-muted { background-color: var(--muted); }
+.bg-primary { background-color: var(--primary); }
+.bg-secondary { background-color: var(--secondary); }
+.bg-accent { background-color: var(--accent); }
+.text-foreground { color: var(--foreground); }
+.text-card-foreground { color: var(--card-foreground); }
+.text-popover-foreground { color: var(--popover-foreground); }
+.text-muted-foreground { color: var(--muted-foreground); }
+.text-primary { color: var(--primary); }
+.text-primary-foreground { color: var(--primary-foreground); }
+.text-secondary { color: var(--secondary); }
+.text-secondary-foreground { color: var(--secondary-foreground); }
+.text-accent { color: var(--accent); }
+.text-accent-foreground { color: var(--accent-foreground); }
+.text-destructive { color: var(--destructive); }
+.text-destructive-foreground { color: var(--destructive-foreground); }
+.border-border { border-color: var(--border); }
+.border-primary { border-color: var(--primary); }
+.border-accent { border-color: var(--accent); }
+.outline-ring { outline-color: var(--ring); }
+.shadow-retro { box-shadow: 4px 4px 0 0 oklch(0.45 0.15 10 / 0.5); }
