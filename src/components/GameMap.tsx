@@ -18,6 +18,7 @@ export const GameMap = () => {
   const isPanningRef = useRef(false)
   const lastPosRef = useRef({ x: 0, y: 0 })
   const lastTapRef = useRef<number | null>(null)
+  const lastPinchDistanceRef = useRef<number | null>(null)
 
   // limita el desplazamiento para que siempre haya parte del mapa visible
   const clampOffset = (next: { x: number; y: number }) => {
@@ -125,7 +126,14 @@ export const GameMap = () => {
         onMouseUp={() => { isPanningRef.current = false }}
         onMouseLeave={() => { isPanningRef.current = false }}
         onTouchStart={(e) => {
-          if (e.touches.length === 1) {
+          if (e.touches.length === 2) {
+            // gesto de dos dedos para zoom
+            const t1 = e.touches[0]
+            const t2 = e.touches[1]
+            const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
+            lastPinchDistanceRef.current = distance
+            isPanningRef.current = false
+          } else if (e.touches.length === 1) {
             const t = e.touches[0]
 
             // doble toque para hacer zoom
@@ -139,9 +147,20 @@ export const GameMap = () => {
 
             isPanningRef.current = true
             lastPosRef.current = { x: t.clientX, y: t.clientY }
+            lastPinchDistanceRef.current = null
           }
         }}
         onTouchMove={(e) => {
+          if (e.touches.length === 2 && lastPinchDistanceRef.current !== null) {
+            // gesto de zoom con dos dedos
+            const t1 = e.touches[0]
+            const t2 = e.touches[1]
+            const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
+            const scaleFactor = distance / lastPinchDistanceRef.current
+            applyZoom(scaleFactor)
+            lastPinchDistanceRef.current = distance
+            return
+          }
           if (!isPanningRef.current || e.touches.length !== 1) return
           const t = e.touches[0]
           const dx = t.clientX - lastPosRef.current.x
@@ -149,7 +168,10 @@ export const GameMap = () => {
           lastPosRef.current = { x: t.clientX, y: t.clientY }
           setOffset((prev) => clampOffset({ x: prev.x + dx, y: prev.y + dy }))
         }}
-        onTouchEnd={() => { isPanningRef.current = false }}
+        onTouchEnd={() => {
+          isPanningRef.current = false
+          lastPinchDistanceRef.current = null
+        }}
       >
         <div
           className="w-full h-full bg-center bg-no-repeat bg-contain"
@@ -218,7 +240,7 @@ export const GameMap = () => {
         </div>
 
         {/* Controles de zoom estilo Google Maps */}
-        <div className="absolute bottom-4 right-4 pointer-events-auto flex flex-col bg-card border-2 border-primary shadow-retro">
+        <div className="absolute bottom-8 right-4 pointer-events-auto flex flex-col bg-card border-2 border-primary shadow-retro">
           <button
             type="button"
             onClick={() => applyZoom(1.15)}
