@@ -9,6 +9,7 @@ export const GameMap = () => {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const avatarRef = useRef<HTMLButtonElement | null>(null)
   const mapRef = useRef<HTMLDivElement | null>(null)
 
   // estado de zoom/pan
@@ -16,6 +17,52 @@ export const GameMap = () => {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const isPanningRef = useRef(false)
   const lastPosRef = useRef({ x: 0, y: 0 })
+  const lastTapRef = useRef<number | null>(null)
+
+  // limita el desplazamiento para que siempre haya parte del mapa visible
+  const clampOffset = (next: { x: number; y: number }) => {
+    const container = mapRef.current
+    if (!container) return next
+
+    const vw = container.clientWidth
+    const vh = container.clientHeight
+
+    // relación de aspecto aproximada del mapa (ajustable si cambiara el SVG)
+    const mapAspect = 16 / 9
+    const viewportAspect = vw / vh
+
+    // tamaño "virtual" del mapa según bg-contain y zoom
+    let mapWidth: number
+    let mapHeight: number
+    if (viewportAspect > mapAspect) {
+      // viewport más ancho que el mapa: altura llena, ancho se ajusta
+      mapHeight = vh * scale
+      mapWidth = mapHeight * mapAspect
+    } else {
+      // viewport más alto que el mapa: ancho llena, altura se ajusta
+      mapWidth = vw * scale
+      mapHeight = mapWidth / mapAspect
+    }
+
+    // siempre dejamos al menos una franja del mapa visible
+    const visibleMarginX = vw * 0.4
+    const visibleMarginY = vh * 0.4
+
+    const maxX = Math.max(0, (mapWidth - visibleMarginX) / 2)
+    const maxY = Math.max(0, (mapHeight - visibleMarginY) / 2)
+
+    return {
+      x: Math.max(-maxX, Math.min(maxX, next.x)),
+      y: Math.max(-maxY, Math.min(maxY, next.y)),
+    }
+  }
+
+  const applyZoom = (factor: number) => {
+    setScale((prev) => {
+      const next = Math.min(3, Math.max(0.7, prev * factor))
+      return next
+    })
+  }
 
   // Redirigir si no hay clase elegida
   useEffect(() => {
@@ -31,7 +78,14 @@ export const GameMap = () => {
   // Cerrar menú contextual al hacer clic fuera
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node | null
+
+      // ignorar clics sobre el avatar para que su onClick maneje el toggle
+      if (avatarRef.current && target && avatarRef.current.contains(target)) {
+        return
+      }
+
+      if (menuRef.current && !menuRef.current.contains(target as Node)) {
         setMenuOpen(false)
       }
     }
@@ -55,10 +109,7 @@ export const GameMap = () => {
           e.preventDefault()
           const delta = -e.deltaY
           const zoomFactor = delta > 0 ? 1.1 : 0.9
-          setScale((prev) => {
-            const next = Math.min(3, Math.max(0.7, prev * zoomFactor))
-            return next
-          })
+          applyZoom(zoomFactor)
         }}
         onMouseDown={(e) => {
           isPanningRef.current = true
@@ -69,13 +120,23 @@ export const GameMap = () => {
           const dx = e.clientX - lastPosRef.current.x
           const dy = e.clientY - lastPosRef.current.y
           lastPosRef.current = { x: e.clientX, y: e.clientY }
-          setOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }))
+          setOffset((prev) => clampOffset({ x: prev.x + dx, y: prev.y + dy }))
         }}
         onMouseUp={() => { isPanningRef.current = false }}
         onMouseLeave={() => { isPanningRef.current = false }}
         onTouchStart={(e) => {
           if (e.touches.length === 1) {
             const t = e.touches[0]
+
+            // doble toque para hacer zoom
+            const now = Date.now()
+            if (lastTapRef.current && now - lastTapRef.current < 300) {
+              applyZoom(1.3)
+              lastTapRef.current = null
+              return
+            }
+            lastTapRef.current = now
+
             isPanningRef.current = true
             lastPosRef.current = { x: t.clientX, y: t.clientY }
           }
@@ -86,7 +147,7 @@ export const GameMap = () => {
           const dx = t.clientX - lastPosRef.current.x
           const dy = t.clientY - lastPosRef.current.y
           lastPosRef.current = { x: t.clientX, y: t.clientY }
-          setOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }))
+          setOffset((prev) => clampOffset({ x: prev.x + dx, y: prev.y + dy }))
         }}
         onTouchEnd={() => { isPanningRef.current = false }}
       >
@@ -105,7 +166,8 @@ export const GameMap = () => {
         {/* Avatar flotante arriba izquierda */}
         <div className="absolute top-4 left-4 pointer-events-auto">
           <button
-            onClick={() => setMenuOpen((o) => !o)}
+            ref={avatarRef}
+            onClick={() => setMenuOpen((prev) => !prev)}
             className="w-14 h-14 rounded-full border-2 border-primary overflow-hidden shadow-retro bg-card hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
             style={{ imageRendering: 'pixelated' }}
             aria-haspopup="true"
@@ -138,6 +200,24 @@ export const GameMap = () => {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Controles de zoom estilo Google Maps */}
+        <div className="absolute bottom-4 right-4 pointer-events-auto flex flex-col bg-card border-2 border-primary shadow-retro">
+          <button
+            type="button"
+            onClick={() => applyZoom(1.15)}
+            className="w-10 h-10 flex items-center justify-center text-primary text-lg border-b border-primary hover:bg-primary/10"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => applyZoom(0.85)}
+            className="w-10 h-10 flex items-center justify-center text-primary text-lg hover:bg-primary/10"
+          >
+            −
+          </button>
         </div>
 
         {/* Texto de debug */}
