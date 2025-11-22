@@ -3,12 +3,19 @@ import { useAuth } from '../auth/useAuth'
 import { useNavigate } from 'react-router-dom'
 
 // Componente principal del mapa de juego
-// Usa una imagen de fondo (agregar en /public/game-map-bg.png o ajustar ruta)
+// Usa el mapa SVG ubicado en /public/mapa.svg como fondo
 export const GameMap = () => {
   const { profile, selectedClass, logout, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<HTMLDivElement | null>(null)
+
+  // estado de zoom/pan
+  const [scale, setScale] = useState(1)
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const isPanningRef = useRef(false)
+  const lastPosRef = useRef({ x: 0, y: 0 })
 
   // Redirigir si no hay clase elegida
   useEffect(() => {
@@ -40,13 +47,60 @@ export const GameMap = () => {
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-[#222] text-foreground font-sans">
-      {/* Fondo del mapa */}
+      {/* Lienzo del mapa con zoom/pan */}
       <div
-        className="absolute inset-0 bg-center bg-no-repeat bg-cover"
-        style={{ backgroundImage: "url('/game-map-bg.png')" }}
-      />
+        ref={mapRef}
+        className="absolute inset-0 touch-pan-y touch-none cursor-grab active:cursor-grabbing"
+        onWheel={(e) => {
+          e.preventDefault()
+          const delta = -e.deltaY
+          const zoomFactor = delta > 0 ? 1.1 : 0.9
+          setScale((prev) => {
+            const next = Math.min(3, Math.max(0.7, prev * zoomFactor))
+            return next
+          })
+        }}
+        onMouseDown={(e) => {
+          isPanningRef.current = true
+          lastPosRef.current = { x: e.clientX, y: e.clientY }
+        }}
+        onMouseMove={(e) => {
+          if (!isPanningRef.current) return
+          const dx = e.clientX - lastPosRef.current.x
+          const dy = e.clientY - lastPosRef.current.y
+          lastPosRef.current = { x: e.clientX, y: e.clientY }
+          setOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }))
+        }}
+        onMouseUp={() => { isPanningRef.current = false }}
+        onMouseLeave={() => { isPanningRef.current = false }}
+        onTouchStart={(e) => {
+          if (e.touches.length === 1) {
+            const t = e.touches[0]
+            isPanningRef.current = true
+            lastPosRef.current = { x: t.clientX, y: t.clientY }
+          }
+        }}
+        onTouchMove={(e) => {
+          if (!isPanningRef.current || e.touches.length !== 1) return
+          const t = e.touches[0]
+          const dx = t.clientX - lastPosRef.current.x
+          const dy = t.clientY - lastPosRef.current.y
+          lastPosRef.current = { x: t.clientX, y: t.clientY }
+          setOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }))
+        }}
+        onTouchEnd={() => { isPanningRef.current = false }}
+      >
+        <div
+          className="w-full h-full bg-center bg-no-repeat bg-contain"
+          style={{
+            backgroundImage: "url('/mapa.svg')",
+            transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+            transformOrigin: 'center center',
+          }}
+        />
+      </div>
 
-      {/* Overlay UI */}
+      {/* Overlay UI (avatar fijo y menú) */}
       <div className="relative z-10 w-full h-full pointer-events-none">
         {/* Avatar flotante arriba izquierda */}
         <div className="absolute top-4 left-4 pointer-events-auto">
