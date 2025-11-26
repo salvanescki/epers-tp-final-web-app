@@ -1,20 +1,32 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/useAuth'
 import { useNavigate } from 'react-router-dom'
+import { useUbicacionStreams } from '../lib/useUbicacionStreams'
+import { SpiritSpawnModal } from './SpiritSpawnModal'
+import { SpiritMarker } from './SpiritMarker'
 
 // Componente principal del mapa de juego
 // Usa el mapa SVG ubicado en /public/mapa.svg como fondo
 export const GameMap = () => {
-  const { profile, selectedClass, logout, isAuthenticated } = useAuth()
+  const { profile, selectedClass, logout, isAuthenticated, credential } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const avatarRef = useRef<HTMLButtonElement | null>(null)
   const mapRef = useRef<HTMLDivElement | null>(null)
+  const mapContainerRef = useRef<HTMLDivElement | null>(null)
 
   // estado de zoom/pan
   const [scale, setScale] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [espiritus, setEspiritus] = useState<Array<any>>([])
+  // locations will include a set of coordinates (lat, lng) and we compute bounds from them
+  const [locations, setLocations] = useState<Array<{ id: number | string, name?: string, coordenadas?: Array<{ latitud: number, longitud: number }>, bounds?: { minLat: number, maxLat: number, minLng: number, maxLng: number } }>>([])
+  const [activeLocationId, setActiveLocationId] = useState<string | number | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [myNightBringerId, setMyNightBringerId] = useState<number | null>(null)
+  const [globalBounds, setGlobalBounds] = useState<{ minLat: number, maxLat: number, minLng: number, maxLng: number } | null>(null)
+  const [clickPos, setClickPos] = useState<{ x: number, y: number } | null>(null)
   const isPanningRef = useRef(false)
   const lastPosRef = useRef({ x: 0, y: 0 })
   const lastTapRef = useRef<number | null>(null)
@@ -76,6 +88,92 @@ export const GameMap = () => {
     }
   }, [isAuthenticated, selectedClass, navigate])
 
+  // Fetch available ubicaciones once and subscribe
+  useEffect(() => {
+    const base = import.meta.env.VITE_API_BASE_URL ?? ''
+    const url = `${base}/ubicacion`
+    fetch(url)
+      .then((r) => r.json())
+      .then((list) => {
+        // Convert returned DTO into a shape with `coordenadas` and derived bounds
+        const parsed = (list || []).map((l: any) => {
+          const coords = (l.coordenadas || []).map((c: any) => ({ latitud: c.latitud ?? c.latitude ?? c.lat, longitud: c.longitud ?? c.longitude ?? c.lng }))
+          let minLat = Number.POSITIVE_INFINITY
+          let maxLat = Number.NEGATIVE_INFINITY
+          let minLng = Number.POSITIVE_INFINITY
+          let maxLng = Number.NEGATIVE_INFINITY
+          coords.forEach((c: { latitud: number, longitud: number}) => {
+            minLat = Math.min(minLat, c.latitud)
+            maxLat = Math.max(maxLat, c.latitud)
+            minLng = Math.min(minLng, c.longitud)
+            maxLng = Math.max(maxLng, c.longitud)
+          })
+          const bounds = { minLat, maxLat, minLng, maxLng }
+          return { ...l, coordenadas: coords, bounds }
+        })
+        setLocations(parsed)
+        if (parsed && parsed.length > 0) {
+          setActiveLocationId(parsed[0].id)
+        }
+
+        // compute global bounds for the entire map using all coords
+        let gMinLat = Number.POSITIVE_INFINITY, gMaxLat = Number.NEGATIVE_INFINITY, gMinLng = Number.POSITIVE_INFINITY, gMaxLng = Number.NEGATIVE_INFINITY
+        parsed.forEach((pl: any) => {
+          if (!pl.coordenadas) return
+          pl.coordenadas.forEach((c: any) => {
+            gMinLat = Math.min(gMinLat, c.latitud)
+            gMaxLat = Math.max(gMaxLat, c.latitud)
+            gMinLng = Math.min(gMinLng, c.longitud)
+            gMaxLng = Math.max(gMaxLng, c.longitud)
+          })
+        })
+        if (gMinLat !== Number.POSITIVE_INFINITY) {
+          setGlobalBounds({ minLat: gMinLat, maxLat: gMaxLat, minLng: gMinLng, maxLng: gMaxLng })
+        }
+      })
+      .catch((err) => {
+        // If the endpoint differs, user can override base url or handle errors
+        console.warn('No se pudieron obtener ubicaciones', err)
+      })
+  }, [])
+
+  // Find current user's NightBringer ID (fetch and match by name; create if not exists)
+  useEffect(() => {
+    const base = import.meta.env.VITE_API_BASE_URL ?? ''
+    if (!profile?.email) return
+    fetch(`${base}/nightBringer`)
+      .then((r) => r.json())
+      .then((list) => {
+        const nameToMatch = profile.name || profile.email || ''
+        let match = list.find((n: any) => n.nombre === nameToMatch)
+        if (!match) {
+          // try matching if created with email as name
+          match = list.find((n: any) => n.nombre === profile.email)
+        }
+        if (match) {
+          setMyNightBringerId(match.id)
+          return
+        }
+        // If not found, create a NightBringer with the profile name
+        const body = { nombre: nameToMatch }
+        fetch(`${base}/nightBringer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(credential ? { Authorization: `Bearer ${credential}` } : {}) },
+          body: JSON.stringify(body),
+        }).then(async (r) => {
+          if (!r.ok) {
+            console.warn('No se pudo crear NightBringer', await r.text())
+            return
+          }
+          const created = await r.json()
+          setMyNightBringerId(created.id)
+        }).catch((err) => {
+          console.warn('Error creating nightbringer', err)
+        })
+      })
+      .catch((err) => console.warn('No se pudo obtener nightBringer list', err))
+  }, [profile])
+
   // Cerrar menú contextual al hacer clic fuera
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -95,6 +193,49 @@ export const GameMap = () => {
     }
     return () => document.removeEventListener('mousedown', handler)
   }, [menuOpen])
+
+  // Helper to convert lat/lng <-> normalized x/y within the global bounds
+  const latLngToNormalized = (lat: number, lng: number) => {
+    if (!globalBounds) return { x: 0.5, y: 0.5 }
+    const { minLat, maxLat, minLng, maxLng } = globalBounds
+    const denomLng = (maxLng - minLng) || 1
+    const denomLat = (maxLat - minLat) || 1
+    const x = (lng - minLng) / denomLng
+    // invert Y because DOM y grows downward
+    const y = 1 - (lat - minLat) / denomLat
+    return { x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) }
+  }
+
+  const normalizedToLatLng = (x: number, y: number) => {
+    if (!globalBounds) return { lat: 0, lng: 0 }
+    const { minLat, maxLat, minLng, maxLng } = globalBounds
+    const lng = minLng + x * (maxLng - minLng)
+    const lat = maxLat - y * (maxLat - minLat)
+    return { lat, lng }
+  }
+
+  // Subscribe to ubicacion streams for all locations available
+  useUbicacionStreams({
+    ubicacionIds: locations.map((l) => String(l.id)),
+    baseUrl: import.meta.env.VITE_API_BASE_URL ?? '',
+    token: credential ?? null,
+    onMessage: (ubicacionId, data) => {
+      // El backend debería enviar el espiritu creado con { id, name, x, y, ubicacionId }
+      const parsed = typeof data === 'string' ? (() => {
+        try { return JSON.parse(data) } catch { return data }
+      })() : data
+
+      // append to spirits list; attempt to normalize position if lat/long fields
+      setEspiritus((prev) => {
+        // If backend returns array, merge it
+        if (Array.isArray(parsed)) {
+          const arr = parsed.map((it: any) => ({ ...it, ubicacionId }))
+          return [...prev, ...arr]
+        }
+        return [...prev, { ...parsed, ubicacionId }]
+      })
+    }
+  })
 
   if (!profile) {
     return null
@@ -174,13 +315,44 @@ export const GameMap = () => {
         }}
       >
         <div
-          className="w-full h-full bg-center bg-no-repeat bg-contain"
+          ref={mapContainerRef}
+          className="w-full h-full bg-center bg-no-repeat bg-contain relative"
           style={{
             backgroundImage: "url('/mapa.svg')",
             transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
             transformOrigin: 'center center',
           }}
-        />
+          onClick={(e) => {
+            // Click spawning flow: only nightbringer can spawn
+            if (selectedClass !== 'nightbringer') return
+            const containerRect = mapContainerRef.current?.getBoundingClientRect()
+            if (!containerRect) return
+            const x = (e.clientX - containerRect.left) / containerRect.width
+            const y = (e.clientY - containerRect.top) / containerRect.height
+            // Convert click to lat/lng using global bounds
+            const { lat, lng } = normalizedToLatLng(x, y)
+            // Find location that contains this coords using bounds
+            const found = locations.find((l) => {
+              if (!l.bounds) return false
+              return lat >= l.bounds.minLat && lat <= l.bounds.maxLat && lng >= l.bounds.minLng && lng <= l.bounds.maxLng
+            })
+            if (!found) {
+              // If click is not inside a defined location, ignore
+              return
+            }
+            setActiveLocationId(found.id)
+            setClickPos({ x, y })
+            setModalOpen(true)
+          }}
+        >
+          {/* Spirit markers are rendered inside the map container so they naturally scale */}
+          {espiritus.filter(s => String(s.ubicacionId) === String(activeLocationId)).map((s) => {
+            const lat = s?.coordenada?.latitud ?? s.latitud ?? s.latitude ?? s?.coordenada?.lat
+            const lng = s?.coordenada?.longitud ?? s.longitud ?? s.longitude ?? s?.coordenada?.lng
+            const { x: sx, y: sy } = latLngToNormalized(lat ?? 0, lng ?? 0)
+            return <SpiritMarker key={s.id} id={s.id} name={s.name} x={sx} y={sy} />
+          })}
+        </div>
       </div>
 
       {/* Overlay UI (avatar fijo y menú) */}
@@ -261,7 +433,94 @@ export const GameMap = () => {
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-card/70 border border-border px-3 py-2 text-[0.55rem] tracking-widest">
           {">"} MAPA DEMO - CLASE: {selectedClass?.toUpperCase()} {"<"}
         </div>
+        {/* Selector de ubicacion pequeno */}
+        <div className="absolute top-4 right-4 z-20 pointer-events-auto">
+          <select
+            value={String(activeLocationId ?? '')}
+            onChange={(e) => setActiveLocationId(e.target.value)}
+            className="text-xs bg-card border-2 border-primary px-2 py-1"
+          >
+            {locations.length === 0 ? (
+              <option value="">Cargando ubicaciones...</option>
+            ) : (
+              locations.map((loc) => (
+                <option key={String(loc.id)} value={String(loc.id)}>{loc.name ?? `Ubicacion ${loc.id}`}</option>
+              ))
+            )}
+          </select>
+        </div>
       </div>
+      {/* Modal to spawn spirit */}
+      <SpiritSpawnModal
+        open={modalOpen}
+        initialName={''}
+        onClose={() => { setModalOpen(false); setClickPos(null) }}
+        onSubmit={(name) => {
+          const ubicacion = activeLocationId
+          const base = import.meta.env.VITE_API_BASE_URL ?? ''
+          if (!ubicacion) return
+          // If we have myNightBringerId and user is nightbringer, call the special PATCH endpoint
+          const shouldUseNightbringerEndpoint = selectedClass === 'nightbringer' && !!myNightBringerId
+          if (shouldUseNightbringerEndpoint) {
+            const id = myNightBringerId as number
+            const safeName = encodeURIComponent(name)
+            fetch(`${base}/nightBringer/${id}/spawnearEspirituEnUbicacion/${safeName}/${ubicacion}`, {
+              method: 'PATCH',
+              headers: { ...(credential ? { Authorization: `Bearer ${credential}` } : {}) },
+            }).then(async (r) => {
+              if (!r.ok) {
+                console.error('NightBringer spawn failed', await r.text())
+                setModalOpen(false)
+                setClickPos(null)
+                return
+              }
+              try {
+                const created = await r.json()
+                setEspiritus((prev) => [...prev, { ...created, ubicacionId: String(ubicacion) }])
+              } catch {
+                // ignore parsing
+              }
+              setModalOpen(false)
+              setClickPos(null)
+            }).catch((err) => {
+              console.error('Error spawning spirit', err)
+              setModalOpen(false)
+              setClickPos(null)
+            })
+            return
+          }
+
+          // Otherwise fallback to basic POST endpoint
+          const body: any = { name }
+          if (clickPos) { body.x = clickPos.x; body.y = clickPos.y }
+          fetch(`${base}/ubicacion/${ubicacion}/espiritus`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(credential ? { Authorization: `Bearer ${credential}` } : {}) },
+            body: JSON.stringify(body),
+          }).then(async (r) => {
+            if (!r.ok) {
+              const txt = await r.text()
+              console.error('Spawn failed', txt)
+              setModalOpen(false)
+              setClickPos(null)
+              return
+            }
+            // If backend returns created spirit, we can optimistically append
+            try {
+              const created = await r.json()
+              setEspiritus((prev) => [...prev, { ...created, ubicacionId: String(ubicacion) }])
+            } catch {
+              // ignore parsing
+            }
+            setModalOpen(false)
+            setClickPos(null)
+          }).catch((err) => {
+            console.error('Error spawning spirit', err)
+            setModalOpen(false)
+            setClickPos(null)
+          })
+        }}
+      />
     </div>
   )
 }
