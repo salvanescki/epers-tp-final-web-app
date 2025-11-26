@@ -6,6 +6,7 @@ import App from './App.tsx'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
+import { DebugOverlay } from './components/DebugOverlay'
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string
 
@@ -21,6 +22,7 @@ createRoot(document.getElementById('root')!).render(
         <BrowserRouter>
           <App />
         </BrowserRouter>
+        <DebugOverlay />
       </AuthProvider>
     </GoogleOAuthProvider>
   </StrictMode>,

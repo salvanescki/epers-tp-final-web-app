@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { apiFetch } from '../lib/api'
 import { useAuth } from '../auth/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { useUbicacionStreams } from '../lib/useUbicacionStreams'
@@ -90,9 +91,7 @@ export const GameMap = () => {
 
   // Fetch available ubicaciones once and subscribe
   useEffect(() => {
-    const base = import.meta.env.VITE_API_BASE_URL ?? ''
-    const url = `${base}/ubicacion`
-    fetch(url)
+    apiFetch('/ubicacion')
       .then((r) => r.json())
       .then((list) => {
         // Convert returned DTO into a shape with `coordenadas` and derived bounds
@@ -141,7 +140,7 @@ export const GameMap = () => {
   useEffect(() => {
     const base = import.meta.env.VITE_API_BASE_URL ?? ''
     if (!profile?.email) return
-    fetch(`${base}/nightBringer`)
+    apiFetch('/nightBringer')
       .then((r) => r.json())
       .then((list) => {
         const nameToMatch = profile.name || profile.email || ''
@@ -457,16 +456,14 @@ export const GameMap = () => {
         onClose={() => { setModalOpen(false); setClickPos(null) }}
         onSubmit={(name) => {
           const ubicacion = activeLocationId
-          const base = import.meta.env.VITE_API_BASE_URL ?? ''
           if (!ubicacion) return
           // If we have myNightBringerId and user is nightbringer, call the special PATCH endpoint
           const shouldUseNightbringerEndpoint = selectedClass === 'nightbringer' && !!myNightBringerId
           if (shouldUseNightbringerEndpoint) {
             const id = myNightBringerId as number
             const safeName = encodeURIComponent(name)
-            fetch(`${base}/nightBringer/${id}/spawnearEspirituEnUbicacion/${safeName}/${ubicacion}`, {
+            apiFetch(`/nightBringer/${id}/spawnearEspirituEnUbicacion/${safeName}/${ubicacion}`, {
               method: 'PATCH',
-              headers: { ...(credential ? { Authorization: `Bearer ${credential}` } : {}) },
             }).then(async (r) => {
               if (!r.ok) {
                 console.error('NightBringer spawn failed', await r.text())
@@ -491,11 +488,10 @@ export const GameMap = () => {
           }
 
           // Otherwise fallback to basic POST endpoint
-          const body: any = { name }
-          if (clickPos) { body.x = clickPos.x; body.y = clickPos.y }
-          fetch(`${base}/ubicacion/${ubicacion}/espiritus`, {
+          const body: any = { nombre: name, tipo: 'DEMONIO', nivelDeConexion: 1, ubicacionId: Number(ubicacion) }
+          if (clickPos) { const { lat, lng } = normalizedToLatLng(clickPos.x, clickPos.y); body.latitud = lat; body.longitud = lng }
+          apiFetch(`/ubicacion/${ubicacion}/espiritus`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(credential ? { Authorization: `Bearer ${credential}` } : {}) },
             body: JSON.stringify(body),
           }).then(async (r) => {
             if (!r.ok) {
