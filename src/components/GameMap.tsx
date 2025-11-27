@@ -1,103 +1,104 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/useAuth";
-import { MAP_ZONES } from "../data/MAP_ZONES";
-import { spawnearEspiritu } from "../api/api.ts";
-import { ProfileMenu } from "./ProfileMenu";
+"use client"
+
+import type React from "react"
+
+import { useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { useAuth } from "../auth/useAuth"
+import { MAP_ZONES } from "../data/MAP_ZONES"
+import { spawnearEspiritu } from "../api/api.ts"
+import { ProfileMenu } from "./ProfileMenu"
+import "../styles/game-map.css"
 
 export const GameMap = () => {
-  const { selectedClass, nightBringerId, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const mapRef = useRef<HTMLDivElement | null>(null);
+  const { selectedClass, nightBringerId, isAuthenticated } = useAuth()
+  const navigate = useNavigate()
+  const mapRef = useRef<HTMLDivElement | null>(null)
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedZone, setSelectedZone] = useState<any | null>(null);
-  const [nombreEspiritu, setNombreEspiritu] = useState("");
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedZone, setSelectedZone] = useState<any | null>(null)
+  const [nombreEspiritu, setNombreEspiritu] = useState("")
 
   // Estado de zoom/pan
-  const [scale, setScale] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const isPanningRef = useRef(false);
-  const lastPosRef = useRef({ x: 0, y: 0 });
-  const lastTapRef = useRef<number | null>(null);
-  const lastPinchDistanceRef = useRef<number | null>(null);
+  const [scale, setScale] = useState(1)
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const isPanningRef = useRef(false)
+  const lastPosRef = useRef({ x: 0, y: 0 })
+  const lastTapRef = useRef<number | null>(null)
+  const lastPinchDistanceRef = useRef<number | null>(null)
 
   // Limita el desplazamiento para que siempre haya parte del mapa visible
   const clampOffset = (next: { x: number; y: number }) => {
-    const container = mapRef.current;
-    if (!container) return next;
+    const container = mapRef.current
+    if (!container) return next
 
-    const vw = container.clientWidth;
-    const vh = container.clientHeight;
+    const vw = container.clientWidth
+    const vh = container.clientHeight
 
-    // Relación de aspecto aproximada del mapa
-    const mapAspect = 4 / 3;
-    const viewportAspect = vw / vh;
+    // Relación de aspecto del mapa: 16:10
+    const mapAspect = 16 / 10
+    const viewportAspect = vw / vh
 
     // Tamaño "virtual" del mapa según zoom
-    let mapWidth: number;
-    let mapHeight: number;
+    let mapWidth: number
+    let mapHeight: number
     if (viewportAspect > mapAspect) {
-      mapHeight = vh * scale;
-      mapWidth = mapHeight * mapAspect;
+      mapHeight = vh * scale
+      mapWidth = mapHeight * mapAspect
     } else {
-      mapWidth = vw * scale;
-      mapHeight = mapWidth / mapAspect;
+      mapWidth = vw * scale
+      mapHeight = mapWidth / mapAspect
     }
 
     // Siempre dejamos al menos una franja del mapa visible
-    const visibleMarginX = vw * 0.4;
-    const visibleMarginY = vh * 0.4;
+    const visibleMarginX = vw * 0.4
+    const visibleMarginY = vh * 0.4
 
-    const maxX = Math.max(0, (mapWidth - visibleMarginX) / 2);
-    const maxY = Math.max(0, (mapHeight - visibleMarginY) / 2);
+    const maxX = Math.max(0, (mapWidth - visibleMarginX) / 2)
+    const maxY = Math.max(0, (mapHeight - visibleMarginY) / 2)
 
     return {
       x: Math.max(-maxX, Math.min(maxX, next.x)),
       y: Math.max(-maxY, Math.min(maxY, next.y)),
-    };
-  };
+    }
+  }
 
   const applyZoom = (factor: number) => {
     setScale((prev) => {
-      const next = Math.min(3, Math.max(0.5, prev * factor));
-      return next;
-    });
-  };
+      const next = Math.min(3, Math.max(0.5, prev * factor))
+      return next
+    })
+  }
 
   // Redirigir si no hay clase elegida
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate("/", { replace: true });
-      return;
+      navigate("/", { replace: true })
+      return
     }
     if (!selectedClass) {
-      navigate("/dashboard", { replace: true });
+      navigate("/dashboard", { replace: true })
     }
-  }, [isAuthenticated, selectedClass, navigate]);
+  }, [isAuthenticated, selectedClass, navigate])
 
   const openModal = (zone: any, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (selectedClass !== "nightbringer") return;
-    setSelectedZone(zone);
-    setNombreEspiritu("");
-    setModalOpen(true);
-  };
+    e.stopPropagation()
+    if (selectedClass !== "nightbringer") return
+    setSelectedZone(zone)
+    setNombreEspiritu("")
+    setModalOpen(true)
+  }
 
   const spawn = async () => {
-    if (!nightBringerId) return alert("NightBringer no creado");
+    if (!nightBringerId) return alert("NightBringer no creado")
     try {
-      await spawnearEspiritu(
-        nightBringerId,
-        selectedZone.id,
-        nombreEspiritu || "Espíritu"
-      );
-      setModalOpen(false);
+      await spawnearEspiritu(nightBringerId, selectedZone.id, nombreEspiritu || "Espíritu")
+      setModalOpen(false)
     } catch (e) {
-      console.error(e);
-      alert("Error al spawnear");
+      console.error(e)
+      alert("Error al spawnear")
     }
-  };
+  }
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background text-foreground">
@@ -106,83 +107,77 @@ export const GameMap = () => {
         ref={mapRef}
         className="absolute inset-0 touch-none cursor-grab active:cursor-grabbing"
         onWheel={(e) => {
-          e.preventDefault();
-          const delta = -e.deltaY;
-          const zoomFactor = delta > 0 ? 1.1 : 0.9;
-          applyZoom(zoomFactor);
+          e.preventDefault()
+          const delta = -e.deltaY
+          const zoomFactor = delta > 0 ? 1.1 : 0.9
+          applyZoom(zoomFactor)
         }}
         onMouseDown={(e) => {
-          isPanningRef.current = true;
-          lastPosRef.current = { x: e.clientX, y: e.clientY };
+          isPanningRef.current = true
+          lastPosRef.current = { x: e.clientX, y: e.clientY }
         }}
         onMouseMove={(e) => {
-          if (!isPanningRef.current) return;
-          const dx = e.clientX - lastPosRef.current.x;
-          const dy = e.clientY - lastPosRef.current.y;
-          lastPosRef.current = { x: e.clientX, y: e.clientY };
-          setOffset((prev) => clampOffset({ x: prev.x + dx, y: prev.y + dy }));
+          if (!isPanningRef.current) return
+          const dx = e.clientX - lastPosRef.current.x
+          const dy = e.clientY - lastPosRef.current.y
+          lastPosRef.current = { x: e.clientX, y: e.clientY }
+          setOffset((prev) => clampOffset({ x: prev.x + dx, y: prev.y + dy }))
         }}
         onMouseUp={() => {
-          isPanningRef.current = false;
+          isPanningRef.current = false
         }}
         onMouseLeave={() => {
-          isPanningRef.current = false;
+          isPanningRef.current = false
         }}
         onTouchStart={(e) => {
           if (e.touches.length === 2) {
             // Gesto de dos dedos para zoom
-            const t1 = e.touches[0];
-            const t2 = e.touches[1];
-            const distance = Math.hypot(
-              t2.clientX - t1.clientX,
-              t2.clientY - t1.clientY
-            );
-            lastPinchDistanceRef.current = distance;
-            isPanningRef.current = false;
+            const t1 = e.touches[0]
+            const t2 = e.touches[1]
+            const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
+            lastPinchDistanceRef.current = distance
+            isPanningRef.current = false
           } else if (e.touches.length === 1) {
-            const t = e.touches[0];
+            const t = e.touches[0]
 
             // Doble toque para hacer zoom
-            const now = Date.now();
+            const now = Date.now()
             if (lastTapRef.current && now - lastTapRef.current < 300) {
-              applyZoom(1.3);
-              lastTapRef.current = null;
-              return;
+              applyZoom(1.3)
+              lastTapRef.current = null
+              return
             }
-            lastTapRef.current = now;
+            lastTapRef.current = now
 
-            isPanningRef.current = true;
-            lastPosRef.current = { x: t.clientX, y: t.clientY };
-            lastPinchDistanceRef.current = null;
+            isPanningRef.current = true
+            lastPosRef.current = { x: t.clientX, y: t.clientY }
+            lastPinchDistanceRef.current = null
           }
         }}
         onTouchMove={(e) => {
           if (e.touches.length === 2 && lastPinchDistanceRef.current !== null) {
             // Gesto de zoom con dos dedos
-            const t1 = e.touches[0];
-            const t2 = e.touches[1];
-            const distance = Math.hypot(
-              t2.clientX - t1.clientX,
-              t2.clientY - t1.clientY
-            );
-            const scaleFactor = distance / lastPinchDistanceRef.current;
-            applyZoom(scaleFactor);
-            lastPinchDistanceRef.current = distance;
-            return;
+            const t1 = e.touches[0]
+            const t2 = e.touches[1]
+            const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
+            const scaleFactor = distance / lastPinchDistanceRef.current
+            applyZoom(scaleFactor)
+            lastPinchDistanceRef.current = distance
+            return
           }
-          if (!isPanningRef.current || e.touches.length !== 1) return;
-          const t = e.touches[0];
-          const dx = t.clientX - lastPosRef.current.x;
-          const dy = t.clientY - lastPosRef.current.y;
-          lastPosRef.current = { x: t.clientX, y: t.clientY };
-          setOffset((prev) => clampOffset({ x: prev.x + dx, y: prev.y + dy }));
+          if (!isPanningRef.current || e.touches.length !== 1) return
+          const t = e.touches[0]
+          const dx = t.clientX - lastPosRef.current.x
+          const dy = t.clientY - lastPosRef.current.y
+          lastPosRef.current = { x: t.clientX, y: t.clientY }
+          setOffset((prev) => clampOffset({ x: prev.x + dx, y: prev.y + dy }))
         }}
         onTouchEnd={() => {
-          isPanningRef.current = false;
-          lastPinchDistanceRef.current = null;
+          isPanningRef.current = false
+          lastPinchDistanceRef.current = null
         }}
       >
-        {/* Canvas del mapa */}
+        {/* Canvas del mapa controlado por CSS */}
         <div
           className="absolute inset-0 flex items-center justify-center"
           style={{
@@ -190,15 +185,11 @@ export const GameMap = () => {
             transformOrigin: "center center",
           }}
         >
-          <div className="relative w-[80vw] h-[80vh] bg-[#1b0f1b] border-4 border-primary shadow-[0_0_20px_#ff0077aa,0_0_40px_#ff007733_inset]">
-            {/* Scanlines */}
-            <div className="absolute inset-0 pointer-events-none bg-[repeating-linear-gradient(0deg,rgba(0,0,0,0.12),rgba(0,0,0,0.12)_2px,transparent_2px,transparent_4px)] opacity-25" />
-            
-            {/* Zonas del mapa */}
+          <div className="map-canvas">
             {MAP_ZONES.map((z) => (
               <div
                 key={z.id}
-                className="absolute border-2 border-primary bg-[rgba(255,0,128,0.15)] hover:bg-[rgba(255,0,180,0.35)] hover:border-accent hover:shadow-[0_0_8px_#ff0099aa] transition-all cursor-pointer shadow-[2px_2px_0_#ff005590]"
+                className="zone"
                 onClick={(e) => openModal(z, e)}
                 style={{
                   left: `${z.x}%`,
@@ -209,9 +200,7 @@ export const GameMap = () => {
                   transformOrigin: "center center",
                 }}
               >
-                <span className="absolute top-1 left-1 text-[0.55rem] sm:text-[0.6rem] text-primary pointer-events-none">
-                  {z.name}
-                </span>
+                <span className="zone-name">{z.name}</span>
               </div>
             ))}
           </div>
@@ -251,9 +240,7 @@ export const GameMap = () => {
       {modalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 pointer-events-auto">
           <div className="bg-[#111] border-2 border-primary p-4 sm:p-6 w-72 sm:w-80 flex flex-col gap-3 sm:gap-4 shadow-retro m-4">
-            <h2 className="text-primary text-center text-sm sm:text-base">
-              INVOCAR ESPÍRITU
-            </h2>
+            <h2 className="text-primary text-center text-sm sm:text-base">INVOCAR ESPÍRITU</h2>
 
             <p className="text-xs text-muted-foreground">
               Zona: <span className="text-primary">{selectedZone?.name}</span>
@@ -283,5 +270,5 @@ export const GameMap = () => {
         </div>
       )}
     </div>
-  );
-};
+  )
+}

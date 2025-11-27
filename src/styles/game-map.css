@@ -1,3 +1,4 @@
+/* Contenedor general del mapa (usado cuando no se usa Tailwind) */
 .map-wrapper {
   position: relative;
   width: 100%;
@@ -9,16 +10,19 @@
   background: var(--background);
 }
 
-/* Área del mapa que escala automáticamente */
+/* Ajustado el aspect-ratio y padding para mejor visualización */
+/* Lienzo del mapa con spacing interno que replica el SVG */
 .map-canvas {
   position: relative;
   width: 80vw;
-  height: 80vh;
+  max-width: 1200px;
+  aspect-ratio: 16 / 10;
   background: #1b0f1b;
   border: 4px solid var(--primary);
   box-shadow: 0 0 20px #ff0077aa, 0 0 40px #ff007733 inset;
   image-rendering: pixelated;
-  transition: transform 0.2s ease-out;
+  padding: 2%;
+  box-sizing: border-box;
 }
 
 /* Scanlines */
@@ -37,7 +41,7 @@
   opacity: 0.25;
 }
 
-/* Rectángulos de zonas */
+/* Rectángulos de zonas con pequeño gap interno para simular el dibujo */
 .zone {
   position: absolute;
   border: 2px solid var(--primary);
@@ -45,6 +49,10 @@
   transition: 0.15s ease-out;
   cursor: pointer;
   box-shadow: 2px 2px 0 #ff005590;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .zone:hover {
@@ -54,30 +62,44 @@
 }
 
 .zone-name {
-  position: absolute;
-  top: 3px;
-  left: 4px;
-  font-size: 0.55rem;
+  font-size: 0.85rem;
   color: var(--primary);
   pointer-events: none;
+  white-space: nowrap;
+  text-align: center;
+  font-weight: 500;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  line-height: 1.2;
 }
 
+/* Mejorado el responsive manteniendo aspect ratio */
 /* Responsive en pantallas chicas */
 @media (max-width: 900px) {
   .map-canvas {
     width: 95vw;
-    height: 70vh;
+    aspect-ratio: 16 / 10;
+  }
+
+  .zone-name {
+    font-size: 0.7rem;
   }
 }
 
 @media (max-width: 600px) {
   .map-canvas {
-    width: 100vw;
-    height: 65vh;
+    width: 98vw;
+    aspect-ratio: 16 / 10;
     border-width: 3px;
+    padding: 1.5%;
   }
 
   .zone-name {
-    font-size: 0.45rem;
+    font-size: 0.55rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .zone-name {
+    font-size: 0.5rem;
   }
 }
