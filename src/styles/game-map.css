@@ -80,8 +80,9 @@
     aspect-ratio: 16 / 10;
   }
 
+  /* Reduciendo fuente para que no se salga de los botones */
   .zone-name {
-    font-size: 0.7rem;
+    font-size: 0.6rem;
   }
 }
 
@@ -93,13 +94,15 @@
     padding: 1.5%;
   }
 
+  /* Reduciendo aún más la fuente en pantallas pequeñas */
   .zone-name {
-    font-size: 0.55rem;
+    font-size: 0.48rem;
   }
 }
 
 @media (max-width: 400px) {
+  /* Fuente más pequeña para pantallas muy pequeñas */
   .zone-name {
-    font-size: 0.5rem;
+    font-size: 0.42rem;
   }
 }

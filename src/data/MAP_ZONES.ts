@@ -8,9 +8,6 @@ export const MAP_ZONES = [
   // SUM - centro-izquierda, debajo de Edificio Espora
   { id: 13954, name: "SUM", x: 27, y: 32, w: 13, h: 30, rotate: 0 },
 
-  // Gimnasio - debajo de SUM
-  { id: 13961, name: "Gimnasio", x: 34, y: 67, w: 14, h: 26, rotate: 0 },
-
   // Sector 3 - centro, a la derecha de SUM
   { id: 13955, name: "Sector 3", x: 40, y: 41, w: 13, h: 21, rotate: 0 },
 
@@ -29,6 +26,6 @@ export const MAP_ZONES = [
   // Aulas Sur - vertical, derecha inferior
   { id: 13960, name: "Aulas Sur", x: 66, y: 54, w: 9, h: 39, rotate: 0 },
 
-  // Dptos - diagonal en el extremo derecho
-  { id: 13962, name: "Dptos", x: 77, y: 13, w: 10, h: 65, rotate: -22 },
+  // Departamentos - vertical, extremo derecha
+  { id: 13962, name: "Dptos", x: 83, y: 13, w: 10, h: 65, rotate: -22 },
 ]
