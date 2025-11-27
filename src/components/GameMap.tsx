@@ -194,9 +194,9 @@ export const GameMap = () => {
     } catch (e: any) {
       console.error(e)
       const errorMsg = e?.message || "Error desconocido"
-      
-      // Si el error indica que el NightBringer no existe (404 o 500 con nightBringerSQL null)
-      if (errorMsg.includes("404") || errorMsg.includes("500") || errorMsg.includes("nightBringerSQL")) {
+
+      // Solo consideramos que el NightBringer no existe si el backend devuelve 404
+      if (errorMsg.includes("Error 404")) {
         alert("Tu NightBringer ya no existe en el servidor. Crea uno nuevo en el Dashboard.")
         // Limpiar usando los métodos del contexto y claves específicas por email
         setNightBringerId(null)

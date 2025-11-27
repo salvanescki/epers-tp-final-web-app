@@ -15,13 +15,11 @@ export const Dashboard = () => {
           await recuperarNightBringer(nightBringerId)
           setValidatingNB(false)
         } catch (error: any) {
-          console.error("NightBringer no encontrado en el servidor:", error)
-          // Si devuelve 404 o 500, limpiar el nightBringerId
-          if (error?.message?.includes("404") || error?.message?.includes("500")) {
+          console.error("Error validando NightBringer en el servidor:", error)
+          // Solo si el backend devuelve 404 asumimos que el NightBringer ya no existe
+          if (error?.message?.includes("Error 404")) {
             console.log("Limpiando NightBringer inválido del localStorage")
-            // Limpiar usando el método del contexto que usa las claves correctas por email
             setNightBringerId(null)
-            // También limpiar clase seleccionada
             if (profile?.email) {
               const userClassKey = `selected_player_class_${profile.email}`
               const userNBKey = `nightbringer_id_${profile.email}`
