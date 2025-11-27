@@ -24,7 +24,6 @@ export const GameMap = () => {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const isPanningRef = useRef(false)
   const lastPosRef = useRef({ x: 0, y: 0 })
-  const lastTapRef = useRef<number | null>(null)
   const lastPinchDistanceRef = useRef<number | null>(null)
 
   // Limita el desplazamiento para que siempre haya parte del mapa visible
@@ -140,16 +139,6 @@ export const GameMap = () => {
             isPanningRef.current = false
           } else if (e.touches.length === 1) {
             const t = e.touches[0]
-
-            // Doble toque para hacer zoom
-            const now = Date.now()
-            if (lastTapRef.current && now - lastTapRef.current < 300) {
-              applyZoom(1.3)
-              lastTapRef.current = null
-              return
-            }
-            lastTapRef.current = now
-
             isPanningRef.current = true
             lastPosRef.current = { x: t.clientX, y: t.clientY }
             lastPinchDistanceRef.current = null

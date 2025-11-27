@@ -127,6 +127,23 @@
     white-space: normal;
     line-height: 1.25;
   }
+
+  /* Mostrar nombre corto para Edificio Espora solo en mobile */
+  .zone-name[data-zone="Edificio Espora"] {
+    font-size: 0;
+  }
+
+  .zone-name[data-zone="Edificio Espora"]::before {
+    content: "Edif Espora";
+    font-size: 0.4rem;
+    color: var(--primary);
+  }
+
+  /* Sector 3 con salto de línea en mobile */
+  .zone-name[data-zone="Sector 3"] {
+    white-space: normal;
+    line-height: 1.25;
+  }
 }
 
 @media (max-width: 400px) {
