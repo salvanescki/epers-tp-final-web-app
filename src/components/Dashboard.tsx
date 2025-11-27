@@ -10,17 +10,24 @@ export const Dashboard = () => {
   // Validar que el NightBringer todavía exista en el servidor
   useEffect(() => {
     const validateNightBringer = async () => {
-      if (nightBringerId) {
+      if (nightBringerId && profile?.email) {
         try {
           await recuperarNightBringer(nightBringerId)
           setValidatingNB(false)
         } catch (error: any) {
           console.error("NightBringer no encontrado en el servidor:", error)
-          // Si devuelve 404, limpiar el localStorage
-          if (error?.message?.includes("404")) {
-            localStorage.removeItem("nightbringer_id")
-            localStorage.removeItem("selected_player_class")
+          // Si devuelve 404 o 500, limpiar el nightBringerId
+          if (error?.message?.includes("404") || error?.message?.includes("500")) {
+            console.log("Limpiando NightBringer inválido del localStorage")
+            // Limpiar usando el método del contexto que usa las claves correctas por email
             setNightBringerId(null)
+            // También limpiar clase seleccionada
+            if (profile?.email) {
+              const userClassKey = `selected_player_class_${profile.email}`
+              const userNBKey = `nightbringer_id_${profile.email}`
+              localStorage.removeItem(userClassKey)
+              localStorage.removeItem(userNBKey)
+            }
           }
           setValidatingNB(false)
         }
@@ -29,7 +36,7 @@ export const Dashboard = () => {
       }
     }
     validateNightBringer()
-  }, [nightBringerId, setNightBringerId])
+  }, [nightBringerId, setNightBringerId, profile])
 
   if (!profile || isExpired) {
     return (

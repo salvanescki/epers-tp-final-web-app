@@ -11,7 +11,7 @@ import { ProfileMenu } from "./ProfileMenu"
 import "../styles/game-map.css"
 
 export const GameMap = () => {
-  const { selectedClass, nightBringerId, isAuthenticated } = useAuth()
+  const { selectedClass, nightBringerId, isAuthenticated, setNightBringerId, setSelectedClass, profile } = useAuth()
   const navigate = useNavigate()
   const mapRef = useRef<HTMLDivElement | null>(null)
 
@@ -195,11 +195,18 @@ export const GameMap = () => {
       console.error(e)
       const errorMsg = e?.message || "Error desconocido"
       
-      // Si el error indica que el NightBringer no existe (404), limpiar localStorage
-      if (errorMsg.includes("404") || errorMsg.includes("NightBringer")) {
+      // Si el error indica que el NightBringer no existe (404 o 500 con nightBringerSQL null)
+      if (errorMsg.includes("404") || errorMsg.includes("500") || errorMsg.includes("nightBringerSQL")) {
         alert("Tu NightBringer ya no existe en el servidor. Crea uno nuevo en el Dashboard.")
-        localStorage.removeItem("nightbringer_id")
-        localStorage.removeItem("selected_player_class")
+        // Limpiar usando los métodos del contexto y claves específicas por email
+        setNightBringerId(null)
+        setSelectedClass(null)
+        if (profile?.email) {
+          const userClassKey = `selected_player_class_${profile.email}`
+          const userNBKey = `nightbringer_id_${profile.email}`
+          localStorage.removeItem(userClassKey)
+          localStorage.removeItem(userNBKey)
+        }
         navigate("/dashboard")
       } else {
         alert(`Error al spawnear: ${errorMsg}`)
