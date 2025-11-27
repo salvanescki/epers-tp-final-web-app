@@ -81,6 +81,40 @@
 }
 
 /* Mejorado el responsive manteniendo aspect ratio */
+/* Badge de espíritus en las zonas */
+.espiritu-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #ff0077 0%, #ff0099 100%);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 12px #ff0077, 0 0 6px #ff0077 inset;
+  animation: pulse-badge 2s ease-in-out infinite;
+  z-index: 10;
+  pointer-events: none;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    box-shadow: 0 0 12px #ff0077, 0 0 6px #ff0077 inset;
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 20px #ff0099, 0 0 10px #ff0099 inset;
+    transform: scale(1.05);
+  }
+}
+
 /* Responsive en pantallas chicas */
 @media (max-width: 900px) {
   .map-canvas {
@@ -91,6 +125,15 @@
   /* Reduciendo fuente para que no se salga de los botones */
   .zone-name {
     font-size: 0.55rem;
+  }
+
+  .espiritu-badge {
+    font-size: 0.6rem;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    top: -6px;
+    right: -6px;
   }
 }
 
@@ -105,6 +148,16 @@
   /* Reduciendo aún más la fuente en pantallas pequeñas */
   .zone-name {
     font-size: 0.4rem;
+  }
+
+  .espiritu-badge {
+    font-size: 0.55rem;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    top: -5px;
+    right: -5px;
+    border-width: 1.5px;
   }
 
   /* Forzar saltos de línea en nombres largos específicos en mobile */

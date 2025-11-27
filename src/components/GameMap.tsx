@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../auth/useAuth"
 import { MAP_ZONES } from "../data/MAP_ZONES"
-import { spawnearEspiritu, getUbicaciones } from "../api/api.ts"
+import { spawnearEspiritu, getUbicaciones, getEspiritusEnUbicacion } from "../api/api.ts"
 import { ProfileMenu } from "./ProfileMenu"
 import "../styles/game-map.css"
 
@@ -19,6 +19,7 @@ export const GameMap = () => {
   const [selectedZone, setSelectedZone] = useState<any | null>(null)
   const [nombreEspiritu, setNombreEspiritu] = useState("")
   const [zonesWithRealIds, setZonesWithRealIds] = useState(MAP_ZONES)
+  const [espiritusEnZonas, setEspiritusEnZonas] = useState<Map<number, any[]>>(new Map())
 
   // Estado de zoom/pan
   const [scale, setScale] = useState(1)
@@ -83,6 +84,75 @@ export const GameMap = () => {
         })
         
         setZonesWithRealIds(updatedZones)
+
+        // Cargar espíritus existentes en cada ubicación
+        const initialEspiritusMap = new Map<number, any[]>()
+        await Promise.all(
+          updatedZones.map(async (zone) => {
+            try {
+              const espiritus = await getEspiritusEnUbicacion(zone.id)
+              if (espiritus.length > 0) {
+                initialEspiritusMap.set(zone.id, espiritus)
+              }
+            } catch (error) {
+              console.error(`Error cargando espíritus de zona ${zone.id}:`, error)
+            }
+          })
+        )
+        setEspiritusEnZonas(initialEspiritusMap)
+        console.log('Espíritus iniciales cargados:', initialEspiritusMap)
+
+        // Suscribirse a eventos SSE para cada ubicación
+        const eventSources: EventSource[] = []
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
+        updatedZones.forEach((zone) => {
+          const eventSource = new EventSource(`${baseUrl}/ubicacion/${zone.id}/stream`, {
+            withCredentials: true
+          })
+          
+          eventSource.onopen = () => {
+            console.log(`SSE conectado para ubicación ${zone.id}`)
+          }
+          
+          eventSource.onmessage = (event) => {
+            try {
+              const espiritu = JSON.parse(event.data)
+              console.log('Espíritu recibido via SSE:', espiritu)
+              
+              // Agregar el espíritu a la lista de esta zona
+              setEspiritusEnZonas((prev) => {
+                const newMap = new Map(prev)
+                const currentList = newMap.get(zone.id) || []
+                
+                // Verificar si ya existe (por ID) para evitar duplicados
+                const exists = currentList.some((e: any) => e.id === espiritu.id)
+                if (!exists) {
+                  newMap.set(zone.id, [...currentList, espiritu])
+                }
+                
+                return newMap
+              })
+            } catch (error) {
+              console.error('Error parseando mensaje SSE:', error)
+            }
+          }
+
+          eventSource.onerror = () => {
+            console.warn(`SSE desconectado para ubicación ${zone.id}`)
+            // EventSource intenta reconectar automáticamente, pero si falla repetidamente lo cerramos
+            if (eventSource.readyState === EventSource.CLOSED) {
+              console.error(`Conexión SSE cerrada para ubicación ${zone.id}`)
+            }
+          }
+
+          eventSources.push(eventSource)
+        })
+
+        // Cleanup: cerrar todas las conexiones SSE cuando el componente se desmonte
+        return () => {
+          eventSources.forEach((es) => es.close())
+        }
       } catch (error) {
         console.error("Error cargando ubicaciones:", error)
         // Si falla, usamos los IDs por defecto de MAP_ZONES
@@ -111,13 +181,28 @@ export const GameMap = () => {
   }
 
   const spawn = async () => {
-    if (!nightBringerId) return alert("NightBringer no creado")
+    if (!nightBringerId) {
+      alert("NightBringer no creado. Ve al Dashboard para crear uno.")
+      navigate("/dashboard")
+      return
+    }
     try {
       await spawnearEspiritu(nightBringerId, selectedZone.id, nombreEspiritu || "Espíritu")
       setModalOpen(false)
-    } catch (e) {
+      alert(`Espíritu "${nombreEspiritu || "Espíritu"}" spawneado exitosamente!`)
+    } catch (e: any) {
       console.error(e)
-      alert("Error al spawnear")
+      const errorMsg = e?.message || "Error desconocido"
+      
+      // Si el error indica que el NightBringer no existe, limpiar localStorage
+      if (errorMsg.includes("nightBringerSQL") || errorMsg.includes("null") || errorMsg.includes("500")) {
+        alert("Tu NightBringer ya no existe en el servidor. Crea uno nuevo en el Dashboard.")
+        localStorage.removeItem("nightbringer_id")
+        localStorage.removeItem("selected_player_class")
+        navigate("/dashboard")
+      } else {
+        alert(`Error al spawnear: ${errorMsg}`)
+      }
     }
   }
 
@@ -215,6 +300,11 @@ export const GameMap = () => {
                 <span className="zone-name" data-zone={z.name}>
                   {z.name}
                 </span>
+                {espiritusEnZonas.get(z.id)?.length ? (
+                  <span className="espiritu-badge">
+                    {espiritusEnZonas.get(z.id)?.length}
+                  </span>
+                ) : null}
               </div>
             ))}
           </div>
