@@ -1,8 +1,40 @@
 import { useAuth } from '../auth/useAuth'
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { recuperarNightBringer } from '../api/api'
 
 export const Dashboard = () => {
-  const { profile, logout, isExpired } = useAuth()
+  const { profile, logout, isExpired, nightBringerId, setNightBringerId } = useAuth()
+  const [validatingNB, setValidatingNB] = useState(true)
+
+  // Validar que el NightBringer todavía exista en el servidor
+  useEffect(() => {
+    const validateNightBringer = async () => {
+      if (nightBringerId && profile?.email) {
+        try {
+          await recuperarNightBringer(nightBringerId)
+          setValidatingNB(false)
+        } catch (error: any) {
+          console.error("Error validando NightBringer en el servidor:", error)
+          // Solo si el backend devuelve 404 asumimos que el NightBringer ya no existe
+          if (error?.message?.includes("Error 404")) {
+            console.log("Limpiando NightBringer inválido del localStorage")
+            setNightBringerId(null)
+            if (profile?.email) {
+              const userClassKey = `selected_player_class_${profile.email}`
+              const userNBKey = `nightbringer_id_${profile.email}`
+              localStorage.removeItem(userClassKey)
+              localStorage.removeItem(userNBKey)
+            }
+          }
+          setValidatingNB(false)
+        }
+      } else {
+        setValidatingNB(false)
+      }
+    }
+    validateNightBringer()
+  }, [nightBringerId, setNightBringerId, profile])
 
   if (!profile || isExpired) {
     return (
@@ -11,6 +43,14 @@ export const Dashboard = () => {
         <Link to="/" className="px-4 py-3 bg-primary text-primary-foreground text-[0.65rem] border-2 border-primary shadow-retro hover:translate-x-[2px] hover:translate-y-[2px] transition-all">
           VOLVER
         </Link>
+      </div>
+    )
+  }
+
+  if (validatingNB) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 scanlines">
+        <p className="text-xs text-muted-foreground tracking-widest">Validando NightBringer...</p>
       </div>
     )
   }

@@ -1,26 +1,34 @@
-import { useEffect, useRef, useState } from 'react'
-import { useAuth } from '../auth/useAuth'
-import { useNavigate } from 'react-router-dom'
+"use client"
 
-// Componente principal del mapa de juego
-// Usa el mapa SVG ubicado en /public/mapa.svg como fondo
+import type React from "react"
+
+import { useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { useAuth } from "../auth/useAuth"
+import { MAP_ZONES } from "../data/MAP_ZONES"
+import { spawnearEspiritu, getUbicaciones, getEspiritusEnUbicacion } from "../api/api.ts"
+import { ProfileMenu } from "./ProfileMenu"
+import "../styles/game-map.css"
+
 export const GameMap = () => {
-  const { profile, selectedClass, logout, isAuthenticated } = useAuth()
+  const { selectedClass, nightBringerId, isAuthenticated, setNightBringerId, setSelectedClass, profile } = useAuth()
   const navigate = useNavigate()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement | null>(null)
-  const avatarRef = useRef<HTMLButtonElement | null>(null)
   const mapRef = useRef<HTMLDivElement | null>(null)
 
-  // estado de zoom/pan
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedZone, setSelectedZone] = useState<any | null>(null)
+  const [nombreEspiritu, setNombreEspiritu] = useState("")
+  const [zonesWithRealIds, setZonesWithRealIds] = useState(MAP_ZONES)
+  const [espiritusEnZonas, setEspiritusEnZonas] = useState<Map<number, any[]>>(new Map())
+
+  // Estado de zoom/pan
   const [scale, setScale] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const isPanningRef = useRef(false)
   const lastPosRef = useRef({ x: 0, y: 0 })
-  const lastTapRef = useRef<number | null>(null)
   const lastPinchDistanceRef = useRef<number | null>(null)
 
-  // limita el desplazamiento para que siempre haya parte del mapa visible
+  // Limita el desplazamiento para que siempre haya parte del mapa visible
   const clampOffset = (next: { x: number; y: number }) => {
     const container = mapRef.current
     if (!container) return next
@@ -28,24 +36,22 @@ export const GameMap = () => {
     const vw = container.clientWidth
     const vh = container.clientHeight
 
-    // relación de aspecto aproximada del mapa (ajustable si cambiara el SVG)
-    const mapAspect = 16 / 9
+    // Relación de aspecto del mapa: 16:10
+    const mapAspect = 16 / 10
     const viewportAspect = vw / vh
 
-    // tamaño "virtual" del mapa según bg-contain y zoom
+    // Tamaño "virtual" del mapa según zoom
     let mapWidth: number
     let mapHeight: number
     if (viewportAspect > mapAspect) {
-      // viewport más ancho que el mapa: altura llena, ancho se ajusta
       mapHeight = vh * scale
       mapWidth = mapHeight * mapAspect
     } else {
-      // viewport más alto que el mapa: ancho llena, altura se ajusta
       mapWidth = vw * scale
       mapHeight = mapWidth / mapAspect
     }
 
-    // siempre dejamos al menos una franja del mapa visible
+    // Siempre dejamos al menos una franja del mapa visible
     const visibleMarginX = vw * 0.4
     const visibleMarginY = vh * 0.4
 
@@ -60,52 +66,162 @@ export const GameMap = () => {
 
   const applyZoom = (factor: number) => {
     setScale((prev) => {
-      const next = Math.min(3, Math.max(0.7, prev * factor))
+      const next = Math.min(3, Math.max(0.5, prev * factor))
       return next
     })
   }
 
+  // Cargar ubicaciones del backend y mapear IDs reales
+  useEffect(() => {
+    const loadUbicaciones = async () => {
+      try {
+        const ubicaciones = await getUbicaciones()
+        const ubicacionesMap = new Map(ubicaciones.map((u: any) => [u.nombre, u.id]))
+        
+        const updatedZones = MAP_ZONES.map((zone) => {
+          const realId = ubicacionesMap.get(zone.name)
+          return realId ? { ...zone, id: realId } : zone
+        })
+        
+        setZonesWithRealIds(updatedZones)
+
+        // Cargar espíritus existentes en cada ubicación
+        const initialEspiritusMap = new Map<number, any[]>()
+        await Promise.all(
+          updatedZones.map(async (zone) => {
+            try {
+              const espiritus = await getEspiritusEnUbicacion(zone.id)
+              if (espiritus.length > 0) {
+                initialEspiritusMap.set(zone.id, espiritus)
+              }
+            } catch (error) {
+              console.error(`Error cargando espíritus de zona ${zone.id}:`, error)
+            }
+          })
+        )
+        setEspiritusEnZonas(initialEspiritusMap)
+        console.log('Espíritus iniciales cargados:', initialEspiritusMap)
+
+        // Suscribirse a eventos SSE para cada ubicación
+        const eventSources: EventSource[] = []
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
+        updatedZones.forEach((zone) => {
+          const eventSource = new EventSource(`${baseUrl}/ubicacion/${zone.id}/stream`, {
+            withCredentials: true
+          })
+          
+          eventSource.onopen = () => {
+            console.log(`SSE conectado para ubicación ${zone.id}`)
+          }
+          
+          eventSource.onmessage = (event) => {
+            try {
+              const espiritu = JSON.parse(event.data)
+              console.log('Espíritu recibido via SSE:', espiritu)
+              
+              // Agregar el espíritu a la lista de esta zona
+              setEspiritusEnZonas((prev) => {
+                const newMap = new Map(prev)
+                const currentList = newMap.get(zone.id) || []
+                
+                // Verificar si ya existe (por ID) para evitar duplicados
+                const exists = currentList.some((e: any) => e.id === espiritu.id)
+                if (!exists) {
+                  newMap.set(zone.id, [...currentList, espiritu])
+                }
+                
+                return newMap
+              })
+            } catch (error) {
+              console.error('Error parseando mensaje SSE:', error)
+            }
+          }
+
+          eventSource.onerror = () => {
+            console.warn(`SSE desconectado para ubicación ${zone.id}`)
+            // EventSource intenta reconectar automáticamente, pero si falla repetidamente lo cerramos
+            if (eventSource.readyState === EventSource.CLOSED) {
+              console.error(`Conexión SSE cerrada para ubicación ${zone.id}`)
+            }
+          }
+
+          eventSources.push(eventSource)
+        })
+
+        // Cleanup: cerrar todas las conexiones SSE cuando el componente se desmonte
+        return () => {
+          eventSources.forEach((es) => es.close())
+        }
+      } catch (error) {
+        console.error("Error cargando ubicaciones:", error)
+        // Si falla, usamos los IDs por defecto de MAP_ZONES
+      }
+    }
+    loadUbicaciones()
+  }, [])
+
   // Redirigir si no hay clase elegida
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/', { replace: true })
+      navigate("/", { replace: true })
       return
     }
     if (!selectedClass) {
-      navigate('/dashboard', { replace: true })
+      navigate("/dashboard", { replace: true })
     }
   }, [isAuthenticated, selectedClass, navigate])
 
-  // Cerrar menú contextual al hacer clic fuera
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const target = e.target as Node | null
+  const openModal = (zone: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (selectedClass !== "nightbringer") return
+    setSelectedZone(zone)
+    setNombreEspiritu("")
+    setModalOpen(true)
+  }
 
-      // ignorar clics sobre el avatar para que su onClick maneje el toggle
-      if (avatarRef.current && target && avatarRef.current.contains(target)) {
-        return
-      }
+  const spawn = async () => {
+    if (!nightBringerId) {
+      alert("NightBringer no creado. Ve al Dashboard para crear uno.")
+      navigate("/dashboard")
+      return
+    }
+    try {
+      await spawnearEspiritu(nightBringerId, selectedZone.id, nombreEspiritu || "Espíritu")
+      setModalOpen(false)
+      // El SSE actualizará el badge automáticamente
+      console.log(`Espíritu "${nombreEspiritu || "Espíritu"}" spawneado exitosamente!`)
+    } catch (e: any) {
+      console.error("Error al spawnear espíritu:", e)
+      const errorMsg = e?.message || "Error desconocido"
 
-      if (menuRef.current && !menuRef.current.contains(target as Node)) {
-        setMenuOpen(false)
+      // Solo consideramos que el NightBringer no existe si el backend devuelve 404 con ese mensaje
+      if (errorMsg.includes("Error 404") && errorMsg.toLowerCase().includes("nightbringer")) {
+        alert("Tu NightBringer ya no existe en el servidor. Crea uno nuevo en el Dashboard.")
+        // Limpiar usando los métodos del contexto y claves específicas por email
+        setNightBringerId(null)
+        setSelectedClass(null)
+        if (profile?.email) {
+          const userClassKey = `selected_player_class_${profile.email}`
+          const userNBKey = `nightbringer_id_${profile.email}`
+          localStorage.removeItem(userClassKey)
+          localStorage.removeItem(userNBKey)
+        }
+        navigate("/dashboard")
+      } else {
+        // Cerramos el modal y dejamos registro en consola para no interrumpir la experiencia
+        setModalOpen(false)
       }
     }
-    if (menuOpen) {
-      document.addEventListener('mousedown', handler)
-    }
-    return () => document.removeEventListener('mousedown', handler)
-  }, [menuOpen])
-
-  if (!profile) {
-    return null
   }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#222] text-foreground font-sans">
+    <div className="map-wrapper">
+      <div className="relative w-full h-screen overflow-hidden bg-background/80 text-foreground">
       {/* Lienzo del mapa con zoom/pan */}
       <div
         ref={mapRef}
-        className="absolute inset-0 touch-pan-y touch-none cursor-grab active:cursor-grabbing"
+        className="absolute inset-0 touch-none cursor-grab active:cursor-grabbing"
         onWheel={(e) => {
           e.preventDefault()
           const delta = -e.deltaY
@@ -123,11 +239,15 @@ export const GameMap = () => {
           lastPosRef.current = { x: e.clientX, y: e.clientY }
           setOffset((prev) => clampOffset({ x: prev.x + dx, y: prev.y + dy }))
         }}
-        onMouseUp={() => { isPanningRef.current = false }}
-        onMouseLeave={() => { isPanningRef.current = false }}
+        onMouseUp={() => {
+          isPanningRef.current = false
+        }}
+        onMouseLeave={() => {
+          isPanningRef.current = false
+        }}
         onTouchStart={(e) => {
           if (e.touches.length === 2) {
-            // gesto de dos dedos para zoom
+            // Gesto de dos dedos para zoom
             const t1 = e.touches[0]
             const t2 = e.touches[1]
             const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
@@ -135,16 +255,6 @@ export const GameMap = () => {
             isPanningRef.current = false
           } else if (e.touches.length === 1) {
             const t = e.touches[0]
-
-            // doble toque para hacer zoom
-            const now = Date.now()
-            if (lastTapRef.current && now - lastTapRef.current < 300) {
-              applyZoom(1.3)
-              lastTapRef.current = null
-              return
-            }
-            lastTapRef.current = now
-
             isPanningRef.current = true
             lastPosRef.current = { x: t.clientX, y: t.clientY }
             lastPinchDistanceRef.current = null
@@ -152,7 +262,7 @@ export const GameMap = () => {
         }}
         onTouchMove={(e) => {
           if (e.touches.length === 2 && lastPinchDistanceRef.current !== null) {
-            // gesto de zoom con dos dedos
+            // Gesto de zoom con dos dedos
             const t1 = e.touches[0]
             const t2 = e.touches[1]
             const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
@@ -173,94 +283,105 @@ export const GameMap = () => {
           lastPinchDistanceRef.current = null
         }}
       >
+        {/* Canvas del mapa controlado por CSS */}
         <div
-          className="w-full h-full bg-center bg-no-repeat bg-contain"
+          className="absolute inset-0 flex items-center justify-center"
           style={{
-            backgroundImage: "url('/mapa.svg')",
             transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
-            transformOrigin: 'center center',
+            transformOrigin: "center center",
           }}
-        />
+        >
+          <div className="map-canvas">
+            {zonesWithRealIds.map((z) => (
+              <div
+                key={z.id}
+                className="zone"
+                onClick={(e) => openModal(z, e)}
+                style={{
+                  left: `${z.x}%`,
+                  top: `${z.y}%`,
+                  width: `${z.w}%`,
+                  height: `${z.h}%`,
+                  transform: z.rotate ? `rotate(${z.rotate}deg)` : undefined,
+                  transformOrigin: "center center",
+                }}
+              >
+                <span className="zone-name" data-zone={z.name}>
+                  {z.name}
+                </span>
+                {espiritusEnZonas.get(z.id)?.length ? (
+                  <span className="espiritu-badge">
+                    {espiritusEnZonas.get(z.id)?.length}
+                  </span>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Overlay UI (avatar fijo y menú) */}
+      {/* Overlay UI */}
       <div className="relative z-10 w-full h-full pointer-events-none">
-        {/* Avatar flotante arriba izquierda */}
-        <div className="absolute top-4 left-4 pointer-events-auto">
-          <button
-            ref={avatarRef}
-            onClick={() => setMenuOpen((prev) => !prev)}
-            className="w-14 h-14 rounded-full border-2 border-primary overflow-hidden shadow-retro bg-card hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
-            style={{ imageRendering: 'pixelated' }}
-            aria-haspopup="true"
-            aria-expanded={menuOpen}
-          >
-            {profile.picture ? (
-              <img src={profile.picture} alt={profile.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="flex items-center justify-center w-full h-full text-xs text-primary">?</div>
-            )}
-          </button>
+        {/* Menu de perfil */}
+        <ProfileMenu />
 
-          {menuOpen && (
-            <div
-              ref={menuRef}
-              className="mt-3 w-64 bg-card border-2 border-primary shadow-retro p-4 flex flex-col gap-3 text-[0.6rem]"
-              role="menu"
-            >
-              <p className="text-primary truncate" title={profile.name}>{profile.name}</p>
-              <p className="text-muted-foreground break-all" title={profile.email}>{profile.email}</p>
-              <div className="border-t border-border pt-2 flex flex-col gap-1">
-                <p className="text-xs text-muted-foreground tracking-widest">CLASE:</p>
-                <div className="flex items-center justify-between gap-2 mt-1">
-                  <p className="text-accent text-[0.65rem] font-bold">{selectedClass?.toUpperCase()}</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      navigate('/class')
-                    }}
-                    className="relative w-7 h-7 rounded-full border-2 border-accent flex items-center justify-center text-accent hover:bg-accent/10 hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-                    title="Cambiar de clase"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <button
-                onClick={() => { setMenuOpen(false); logout(); }}
-                className="mt-1 bg-destructive text-destructive-foreground px-3 py-2 border-2 border-destructive shadow-retro hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
-              >
-                CERRAR SESIÓN
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Controles de zoom estilo Google Maps */}
-        <div className="absolute bottom-8 right-4 pointer-events-auto flex flex-col bg-card border-2 border-primary shadow-retro">
+        {/* Controles de zoom */}
+        <div className="absolute bottom-6 sm:bottom-8 right-3 sm:right-4 pointer-events-auto flex flex-col bg-card border-2 border-primary">
           <button
             type="button"
             onClick={() => applyZoom(1.15)}
-            className="w-10 h-10 flex items-center justify-center text-primary text-lg border-b border-primary hover:bg-primary/10"
+            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-primary text-base sm:text-xl border-b border-primary hover:bg-primary/10 transition-colors select-none"
           >
             +
           </button>
           <button
             type="button"
             onClick={() => applyZoom(0.85)}
-            className="w-10 h-10 flex items-center justify-center text-primary text-lg hover:bg-primary/10"
+            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-primary text-base sm:text-xl hover:bg-primary/10 transition-colors select-none"
           >
             −
           </button>
         </div>
 
-        {/* Texto de debug */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-card/70 border border-border px-3 py-2 text-[0.55rem] tracking-widest">
-          {">"} MAPA DEMO - CLASE: {selectedClass?.toUpperCase()} {"<"}
+        {/* Texto de info */}
+        <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 bg-card/70 border border-border px-2 sm:px-3 py-1.5 sm:py-2 text-[0.45rem] sm:text-[0.55rem] tracking-widest pointer-events-none">
+          {">"} CLASE: {selectedClass?.toUpperCase()} {"<"}
         </div>
+      </div>
+
+      {/* Modal de spawn */}
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 pointer-events-auto">
+          <div className="bg-[#111] border-2 border-primary p-4 sm:p-6 w-72 sm:w-80 flex flex-col gap-3 sm:gap-4 shadow-retro m-4">
+            <h2 className="text-primary text-center text-sm sm:text-base">INVOCAR ESPÍRITU</h2>
+
+            <p className="text-xs text-muted-foreground">
+              Zona: <span className="text-primary">{selectedZone?.name}</span>
+            </p>
+
+            <input
+              className="bg-card border border-primary/40 text-xs p-2"
+              placeholder="Nombre del espíritu..."
+              value={nombreEspiritu}
+              onChange={(e) => setNombreEspiritu(e.target.value)}
+            />
+
+            <button
+              onClick={spawn}
+              className="bg-primary text-white px-3 py-2 text-xs sm:text-sm border-2 border-primary hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+            >
+              SPAWNEAR
+            </button>
+
+            <button
+              onClick={() => setModalOpen(false)}
+              className="bg-destructive text-white px-3 py-2 text-xs sm:text-sm border-2 border-destructive hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+            >
+              CANCELAR
+            </button>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   )
