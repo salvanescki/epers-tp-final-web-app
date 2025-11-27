@@ -101,7 +101,8 @@ export const GameMap = () => {
   }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-background text-foreground">
+    <div className="map-wrapper">
+      <div className="relative w-full h-screen overflow-hidden bg-background/80 text-foreground">
       {/* Lienzo del mapa con zoom/pan */}
       <div
         ref={mapRef}
@@ -217,14 +218,14 @@ export const GameMap = () => {
           <button
             type="button"
             onClick={() => applyZoom(1.15)}
-            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-primary text-lg sm:text-xl border-b border-primary hover:bg-primary/10 transition-colors"
+            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-primary text-lg sm:text-xl border-b border-primary hover:bg-primary/10 transition-colors select-none"
           >
             +
           </button>
           <button
             type="button"
             onClick={() => applyZoom(0.85)}
-            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-primary text-lg sm:text-xl hover:bg-primary/10 transition-colors"
+            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-primary text-lg sm:text-xl hover:bg-primary/10 transition-colors select-none"
           >
             −
           </button>
@@ -269,6 +270,7 @@ export const GameMap = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

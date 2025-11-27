@@ -7,17 +7,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--background);
+  background:
+    radial-gradient(circle at top, #2a0713 0, transparent 55%),
+    repeating-linear-gradient(
+      0deg,
+      #120006 0,
+      #120006 2px,
+      #26000c 2px,
+      #26000c 4px
+    );
 }
 
 /* Ajustado el aspect-ratio y padding para mejor visualización */
 /* Lienzo del mapa con spacing interno que replica el SVG */
 .map-canvas {
   position: relative;
-  width: 80vw;
-  max-width: 1200px;
+  width: 120vw;
+  max-width: 1600px;
   aspect-ratio: 16 / 10;
-  background: #1b0f1b;
+  background: rgba(5, 0, 10, 0.92);
   border: 4px solid var(--primary);
   box-shadow: 0 0 20px #ff0077aa, 0 0 40px #ff007733 inset;
   image-rendering: pixelated;
@@ -53,6 +61,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  user-select: none;
 }
 
 .zone:hover {
