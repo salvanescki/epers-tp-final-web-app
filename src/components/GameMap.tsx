@@ -189,13 +189,14 @@ export const GameMap = () => {
     try {
       await spawnearEspiritu(nightBringerId, selectedZone.id, nombreEspiritu || "Espíritu")
       setModalOpen(false)
-      alert(`Espíritu "${nombreEspiritu || "Espíritu"}" spawneado exitosamente!`)
+      // El SSE actualizará el badge automáticamente
+      console.log(`Espíritu "${nombreEspiritu || "Espíritu"}" spawneado exitosamente!`)
     } catch (e: any) {
       console.error(e)
       const errorMsg = e?.message || "Error desconocido"
       
-      // Si el error indica que el NightBringer no existe, limpiar localStorage
-      if (errorMsg.includes("nightBringerSQL") || errorMsg.includes("null") || errorMsg.includes("500")) {
+      // Si el error indica que el NightBringer no existe (404), limpiar localStorage
+      if (errorMsg.includes("404") || errorMsg.includes("NightBringer")) {
         alert("Tu NightBringer ya no existe en el servidor. Crea uno nuevo en el Dashboard.")
         localStorage.removeItem("nightbringer_id")
         localStorage.removeItem("selected_player_class")

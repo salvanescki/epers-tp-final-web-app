@@ -1,8 +1,35 @@
 import { useAuth } from '../auth/useAuth'
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { recuperarNightBringer } from '../api/api'
 
 export const Dashboard = () => {
-  const { profile, logout, isExpired } = useAuth()
+  const { profile, logout, isExpired, nightBringerId, setNightBringerId } = useAuth()
+  const [validatingNB, setValidatingNB] = useState(true)
+
+  // Validar que el NightBringer todavía exista en el servidor
+  useEffect(() => {
+    const validateNightBringer = async () => {
+      if (nightBringerId) {
+        try {
+          await recuperarNightBringer(nightBringerId)
+          setValidatingNB(false)
+        } catch (error: any) {
+          console.error("NightBringer no encontrado en el servidor:", error)
+          // Si devuelve 404, limpiar el localStorage
+          if (error?.message?.includes("404")) {
+            localStorage.removeItem("nightbringer_id")
+            localStorage.removeItem("selected_player_class")
+            setNightBringerId(null)
+          }
+          setValidatingNB(false)
+        }
+      } else {
+        setValidatingNB(false)
+      }
+    }
+    validateNightBringer()
+  }, [nightBringerId, setNightBringerId])
 
   if (!profile || isExpired) {
     return (
@@ -11,6 +38,14 @@ export const Dashboard = () => {
         <Link to="/" className="px-4 py-3 bg-primary text-primary-foreground text-[0.65rem] border-2 border-primary shadow-retro hover:translate-x-[2px] hover:translate-y-[2px] transition-all">
           VOLVER
         </Link>
+      </div>
+    )
+  }
+
+  if (validatingNB) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 scanlines">
+        <p className="text-xs text-muted-foreground tracking-widest">Validando NightBringer...</p>
       </div>
     )
   }

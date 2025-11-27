@@ -38,6 +38,10 @@ const LOCAL_KEY = "google_credential";
 const LOCAL_CLASS_KEY = "selected_player_class";
 const LOCAL_NB_ID = "nightbringer_id";
 
+// Funciones helper para gestionar datos específicos por usuario
+const getUserClassKey = (email: string) => `${LOCAL_CLASS_KEY}_${email}`;
+const getUserNBKey = (email: string) => `${LOCAL_NB_ID}_${email}`;
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -47,10 +51,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [initialized, setInitialized] = useState(false);
 
   const [selectedClass, setSelectedClassState] = useState<string | null>(null);
-  const [nightBringerId, setNightBringerId] = useState<number | null>(() => {
-    const stored = localStorage.getItem(LOCAL_NB_ID);
-    return stored ? Number(stored) : null;
-  });
+  const [nightBringerId, setNightBringerId] = useState<number | null>(null);
 
   const timeoutRef = useRef<number | null>(null);
 
@@ -85,6 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     googleLogout();
 
     localStorage.removeItem(LOCAL_KEY);
+    // Limpiar claves antiguas sin email (por compatibilidad)
     localStorage.removeItem(LOCAL_CLASS_KEY);
     localStorage.removeItem(LOCAL_NB_ID);
 
@@ -103,6 +105,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const decoded = jwtDecode<GoogleJwtPayload>(cred);
         setProfile(decoded);
+        
+        // Cargar datos específicos de este usuario
+        if (decoded.email) {
+          const userClassKey = getUserClassKey(decoded.email);
+          const userNBKey = getUserNBKey(decoded.email);
+          
+          const storedClass = localStorage.getItem(userClassKey);
+          if (storedClass) {
+            setSelectedClassState(storedClass);
+          } else {
+            setSelectedClassState(null);
+          }
+          
+          const storedNB = localStorage.getItem(userNBKey);
+          if (storedNB) {
+            setNightBringerId(Number(storedNB));
+          } else {
+            setNightBringerId(null);
+          }
+        }
+        
         evaluateExpiration(decoded);
       } catch {
         setProfile(null);
@@ -131,14 +154,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
 
-    const storedClass = localStorage.getItem(LOCAL_CLASS_KEY);
-    if (storedClass) {
-      setSelectedClassState(storedClass);
-    }
-
-    const storedNB = localStorage.getItem(LOCAL_NB_ID);
-    if (storedNB) {
-      setNightBringerId(Number(storedNB));
+    // Cargar clase y nightBringer del usuario actual si está autenticado
+    if (stored) {
+      try {
+        const decoded = jwtDecode<GoogleJwtPayload>(stored);
+        if (decoded.email) {
+          const userClassKey = getUserClassKey(decoded.email);
+          const userNBKey = getUserNBKey(decoded.email);
+          
+          const storedClass = localStorage.getItem(userClassKey);
+          if (storedClass) {
+            setSelectedClassState(storedClass);
+          }
+          
+          const storedNB = localStorage.getItem(userNBKey);
+          if (storedNB) {
+            setNightBringerId(Number(storedNB));
+          }
+        }
+      } catch {
+        // Ignorar error de decodificación
+      }
     }
 
     setInitialized(true);
@@ -147,9 +183,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const setSelectedClass = useCallback((cls: string | null) => {
     setSelectedClassState(cls);
-    if (cls) localStorage.setItem(LOCAL_CLASS_KEY, cls);
-    else localStorage.removeItem(LOCAL_CLASS_KEY);
-  }, []);
+    if (profile?.email) {
+      const userClassKey = getUserClassKey(profile.email);
+      if (cls) localStorage.setItem(userClassKey, cls);
+      else localStorage.removeItem(userClassKey);
+    }
+  }, [profile]);
 
   const value = useMemo(
     () => ({
@@ -162,8 +201,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       nightBringerId,
       setNightBringerId: (id: number | null) => {
         setNightBringerId(id);
-        if (id === null) localStorage.removeItem(LOCAL_NB_ID);
-        else localStorage.setItem(LOCAL_NB_ID, String(id));
+        if (profile?.email) {
+          const userNBKey = getUserNBKey(profile.email);
+          if (id === null) localStorage.removeItem(userNBKey);
+          else localStorage.setItem(userNBKey, String(id));
+        }
       },
 
       selectedClass,
