@@ -192,11 +192,11 @@ export const GameMap = () => {
       // El SSE actualizará el badge automáticamente
       console.log(`Espíritu "${nombreEspiritu || "Espíritu"}" spawneado exitosamente!`)
     } catch (e: any) {
-      console.error(e)
+      console.error("Error al spawnear espíritu:", e)
       const errorMsg = e?.message || "Error desconocido"
 
-      // Solo consideramos que el NightBringer no existe si el backend devuelve 404
-      if (errorMsg.includes("Error 404")) {
+      // Solo consideramos que el NightBringer no existe si el backend devuelve 404 con ese mensaje
+      if (errorMsg.includes("Error 404") && errorMsg.toLowerCase().includes("nightbringer")) {
         alert("Tu NightBringer ya no existe en el servidor. Crea uno nuevo en el Dashboard.")
         // Limpiar usando los métodos del contexto y claves específicas por email
         setNightBringerId(null)
@@ -209,7 +209,8 @@ export const GameMap = () => {
         }
         navigate("/dashboard")
       } else {
-        alert(`Error al spawnear: ${errorMsg}`)
+        // Cerramos el modal y dejamos registro en consola para no interrumpir la experiencia
+        setModalOpen(false)
       }
     }
   }
