@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../auth/useAuth"
 import { MAP_ZONES } from "../data/MAP_ZONES"
-import { spawnearEspiritu } from "../api/api.ts"
+import { spawnearEspiritu, getUbicaciones } from "../api/api.ts"
 import { ProfileMenu } from "./ProfileMenu"
 import "../styles/game-map.css"
 
@@ -18,6 +18,7 @@ export const GameMap = () => {
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedZone, setSelectedZone] = useState<any | null>(null)
   const [nombreEspiritu, setNombreEspiritu] = useState("")
+  const [zonesWithRealIds, setZonesWithRealIds] = useState(MAP_ZONES)
 
   // Estado de zoom/pan
   const [scale, setScale] = useState(1)
@@ -68,6 +69,27 @@ export const GameMap = () => {
       return next
     })
   }
+
+  // Cargar ubicaciones del backend y mapear IDs reales
+  useEffect(() => {
+    const loadUbicaciones = async () => {
+      try {
+        const ubicaciones = await getUbicaciones()
+        const ubicacionesMap = new Map(ubicaciones.map((u: any) => [u.nombre, u.id]))
+        
+        const updatedZones = MAP_ZONES.map((zone) => {
+          const realId = ubicacionesMap.get(zone.name)
+          return realId ? { ...zone, id: realId } : zone
+        })
+        
+        setZonesWithRealIds(updatedZones)
+      } catch (error) {
+        console.error("Error cargando ubicaciones:", error)
+        // Si falla, usamos los IDs por defecto de MAP_ZONES
+      }
+    }
+    loadUbicaciones()
+  }, [])
 
   // Redirigir si no hay clase elegida
   useEffect(() => {
@@ -176,7 +198,7 @@ export const GameMap = () => {
           }}
         >
           <div className="map-canvas">
-            {MAP_ZONES.map((z) => (
+            {zonesWithRealIds.map((z) => (
               <div
                 key={z.id}
                 className="zone"
