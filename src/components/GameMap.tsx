@@ -216,7 +216,7 @@ export const GameMap = () => {
         <ProfileMenu />
 
         {/* Controles de zoom */}
-        <div className="absolute bottom-6 sm:bottom-8 right-3 sm:right-4 pointer-events-auto flex flex-col bg-card border-2 border-primary shadow-retro">
+        <div className="absolute bottom-6 sm:bottom-8 right-3 sm:right-4 pointer-events-auto flex flex-col bg-card border-2 border-primary">
           <button
             type="button"
             onClick={() => applyZoom(1.15)}
@@ -258,14 +258,14 @@ export const GameMap = () => {
 
             <button
               onClick={spawn}
-              className="bg-primary text-white px-3 py-2 text-xs sm:text-sm border-2 border-primary shadow-retro hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              className="bg-primary text-white px-3 py-2 text-xs sm:text-sm border-2 border-primary hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
             >
               SPAWNEAR
             </button>
 
             <button
               onClick={() => setModalOpen(false)}
-              className="bg-destructive text-white px-3 py-2 text-xs sm:text-sm border-2 border-destructive shadow-retro hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              className="bg-destructive text-white px-3 py-2 text-xs sm:text-sm border-2 border-destructive hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
             >
               CANCELAR
             </button>
