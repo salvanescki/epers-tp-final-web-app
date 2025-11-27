@@ -91,7 +91,7 @@
 
   /* Reduciendo fuente para que no se salga de los botones */
   .zone-name {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
   }
 }
 
@@ -105,7 +105,28 @@
 
   /* Reduciendo aún más la fuente en pantallas pequeñas */
   .zone-name {
-    font-size: 0.48rem;
+    font-size: 0.4rem;
+  }
+
+  /* Forzar saltos de línea en nombres largos específicos en mobile */
+  .zone-name[data-zone="Rosa de los Vientos"] {
+    white-space: normal;
+    line-height: 1.25;
+  }
+
+  .zone-name[data-zone="Sector 5"] {
+    white-space: normal;
+    line-height: 1.25;
+  }
+
+  .zone-name[data-zone="Aulas Norte"] {
+    white-space: normal;
+    line-height: 1.25;
+  }
+
+  .zone-name[data-zone="Aulas Sur"] {
+    white-space: normal;
+    line-height: 1.25;
   }
 }
 

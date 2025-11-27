@@ -201,7 +201,9 @@ export const GameMap = () => {
                   transformOrigin: "center center",
                 }}
               >
-                <span className="zone-name">{z.name}</span>
+                <span className="zone-name" data-zone={z.name}>
+                  {z.name}
+                </span>
               </div>
             ))}
           </div>
@@ -214,25 +216,25 @@ export const GameMap = () => {
         <ProfileMenu />
 
         {/* Controles de zoom */}
-        <div className="absolute bottom-6 sm:bottom-8 right-4 pointer-events-auto flex flex-col bg-card border-2 border-primary shadow-retro">
+        <div className="absolute bottom-6 sm:bottom-8 right-3 sm:right-4 pointer-events-auto flex flex-col bg-card border-2 border-primary shadow-retro">
           <button
             type="button"
             onClick={() => applyZoom(1.15)}
-            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-primary text-lg sm:text-xl border-b border-primary hover:bg-primary/10 transition-colors select-none"
+            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-primary text-base sm:text-xl border-b border-primary hover:bg-primary/10 transition-colors select-none"
           >
             +
           </button>
           <button
             type="button"
             onClick={() => applyZoom(0.85)}
-            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-primary text-lg sm:text-xl hover:bg-primary/10 transition-colors select-none"
+            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-primary text-base sm:text-xl hover:bg-primary/10 transition-colors select-none"
           >
             −
           </button>
         </div>
 
         {/* Texto de info */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-card/70 border border-border px-3 py-2 text-[0.5rem] sm:text-[0.55rem] tracking-widest pointer-events-none">
+        <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 bg-card/70 border border-border px-2 sm:px-3 py-1.5 sm:py-2 text-[0.45rem] sm:text-[0.55rem] tracking-widest pointer-events-none">
           {">"} CLASE: {selectedClass?.toUpperCase()} {"<"}
         </div>
       </div>
