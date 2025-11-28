@@ -20,6 +20,7 @@ export const GameMap = () => {
   const [nombreEspiritu, setNombreEspiritu] = useState("")
   const [zonesWithRealIds, setZonesWithRealIds] = useState(MAP_ZONES)
   const [espiritusEnZonas, setEspiritusEnZonas] = useState<Map<number, any[]>>(new Map())
+  const [infoModalOpen, setInfoModalOpen] = useState(false)
 
   // Estado de zoom/pan
   const [scale, setScale] = useState(1)
@@ -27,6 +28,34 @@ export const GameMap = () => {
   const isPanningRef = useRef(false)
   const lastPosRef = useRef({ x: 0, y: 0 })
   const lastPinchDistanceRef = useRef<number | null>(null)
+
+  const isNightBringer = selectedClass === "nightbringer"
+  const isLightBringer = selectedClass === "lightbringer"
+  const lightbringerThemeVars = isLightBringer
+    ? ({
+        "--background": "#0d0900",
+        "--foreground": "#fff8d6",
+        "--card": "#1a1403",
+        "--card-foreground": "#fff7c2",
+        "--primary": "#facc15",
+        "--primary-foreground": "#1a1200",
+        "--accent": "#fde047",
+        "--accent-foreground": "#1a1200",
+        "--destructive": "#facc15",
+        "--destructive-foreground": "#1a1200",
+        "--border": "#fcd34d",
+        "--ring": "#facc15",
+        "--muted-foreground": "#fde68a",
+      } as React.CSSProperties)
+    : undefined
+
+  useEffect(() => {
+    if (isLightBringer) {
+      setInfoModalOpen(true)
+    } else {
+      setInfoModalOpen(false)
+    }
+  }, [isLightBringer])
 
   // Limita el desplazamiento para que siempre haya parte del mapa visible
   const clampOffset = (next: { x: number; y: number }) => {
@@ -174,7 +203,7 @@ export const GameMap = () => {
 
   const openModal = (zone: any, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (selectedClass !== "nightbringer") return
+    if (!isNightBringer) return
     setSelectedZone(zone)
     setNombreEspiritu("")
     setModalOpen(true)
@@ -216,7 +245,10 @@ export const GameMap = () => {
   }
 
   return (
-    <div className="map-wrapper">
+    <div
+      className={`map-wrapper ${isLightBringer ? "lightbringer-mode" : ""}`}
+      style={lightbringerThemeVars}
+    >
       <div className="relative w-full h-screen overflow-hidden bg-background/80 text-foreground">
       {/* Lienzo del mapa con zoom/pan */}
       <div
@@ -295,8 +327,8 @@ export const GameMap = () => {
             {zonesWithRealIds.map((z) => (
               <div
                 key={z.id}
-                className="zone"
-                onClick={(e) => openModal(z, e)}
+                className={`zone ${!isNightBringer ? "zone-disabled" : ""}`}
+                onClick={isNightBringer ? (e) => openModal(z, e) : undefined}
                 style={{
                   left: `${z.x}%`,
                   top: `${z.y}%`,
@@ -306,14 +338,14 @@ export const GameMap = () => {
                   transformOrigin: "center center",
                 }}
               >
+                {espiritusEnZonas.get(z.id)?.length ? (
+                  <span className="espiritu-badge">
+                    {`👻x${espiritusEnZonas.get(z.id)?.length}`}
+                  </span>
+                ) : null}
                 <span className="zone-name" data-zone={z.name}>
                   {z.name}
                 </span>
-                {espiritusEnZonas.get(z.id)?.length ? (
-                  <span className="espiritu-badge">
-                    {espiritusEnZonas.get(z.id)?.length}
-                  </span>
-                ) : null}
               </div>
             ))}
           </div>
@@ -324,6 +356,17 @@ export const GameMap = () => {
       <div className="relative z-10 w-full h-full pointer-events-none">
         {/* Menu de perfil */}
         <ProfileMenu />
+
+        {isLightBringer && (
+          <button
+            type="button"
+            onClick={() => setInfoModalOpen(true)}
+            className="absolute bottom-16 sm:bottom-20 left-1/2 -translate-x-1/2 pointer-events-auto border-2 border-primary text-primary px-6 py-3 text-sm sm:text-base hover:bg-primary/20 transition-colors uppercase tracking-wider"
+            style={{ backgroundColor: "rgba(250, 204, 21, 0.2)" }}
+          >
+            INSTRUCCIONES
+          </button>
+        )}
 
         {/* Controles de zoom */}
         <div className="absolute bottom-6 sm:bottom-8 right-3 sm:right-4 pointer-events-auto flex flex-col bg-card border-2 border-primary">
@@ -344,10 +387,29 @@ export const GameMap = () => {
         </div>
 
         {/* Texto de info */}
-        <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 bg-card/70 border border-border px-2 sm:px-3 py-1.5 sm:py-2 text-[0.45rem] sm:text-[0.55rem] tracking-widest pointer-events-none">
+        <div
+          className={`absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 bg-card/70 border px-2 sm:px-3 py-1.5 sm:py-2 text-[0.45rem] sm:text-[0.55rem] tracking-widest pointer-events-none ${isLightBringer ? "border-primary text-primary" : "border-border"}`}
+        >
           {">"} CLASE: {selectedClass?.toUpperCase()} {"<"}
         </div>
       </div>
+
+      {isLightBringer && infoModalOpen && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 pointer-events-auto">
+          <div className="bg-[#111] border-2 border-primary p-5 sm:p-6 w-80 sm:w-96 flex flex-col gap-4 shadow-retro text-sm">
+            <h2 className="text-primary text-center text-base">INSTRUCCIONES LIGHTBRINGER</h2>
+            <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer porta elementum lacus, vitae tincidunt libero interdum nec. Etiam at arcu at velit hendrerit auctor eu in sapien. Pellentesque habitant morbi tristique senectus et netus.
+            </p>
+            <button
+              onClick={() => setInfoModalOpen(false)}
+              className="bg-primary text-primary-foreground px-3 py-2 text-xs sm:text-sm border-2 border-primary hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+            >
+              ENTENDIDO
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal de spawn */}
       {modalOpen && (

@@ -38,7 +38,7 @@ export const ProfileMenu = () => {
       <button
         ref={avatarRef}
         onClick={() => setMenuOpen((prev) => !prev)}
-        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-primary overflow-hidden shadow-retro bg-card hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+        className="profile-menu-trigger w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-primary overflow-hidden shadow-retro bg-card hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
         style={{ imageRendering: 'pixelated' }}
         aria-haspopup="true"
         aria-expanded={menuOpen}
@@ -53,7 +53,7 @@ export const ProfileMenu = () => {
       {menuOpen && (
         <div
           ref={menuRef}
-          className="mt-3 w-56 sm:w-64 bg-card border-2 border-primary shadow-retro p-3 sm:p-4 flex flex-col gap-3 text-[0.6rem]"
+          className="profile-menu-panel mt-3 w-56 sm:w-64 bg-card border-2 border-primary shadow-retro p-3 sm:p-4 flex flex-col gap-3 text-[0.6rem]"
           role="menu"
         >
           <p className="text-primary truncate" title={profile.name}>{profile.name}</p>
@@ -68,7 +68,7 @@ export const ProfileMenu = () => {
                   setMenuOpen(false)
                   navigate('/class')
                 }}
-                className="relative w-7 h-7 rounded-full border-2 border-accent flex items-center justify-center text-accent hover:bg-accent/10 hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                className="profile-menu-class-button relative w-7 h-7 rounded-full border-2 border-accent flex items-center justify-center text-accent hover:bg-accent/10 hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
                 title="Cambiar de clase"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -79,7 +79,7 @@ export const ProfileMenu = () => {
           </div>
           <button
             onClick={() => { setMenuOpen(false); logout(); }}
-            className="mt-1 bg-destructive text-destructive-foreground px-3 py-2 text-[0.6rem] border-2 border-destructive shadow-retro hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+            className="profile-menu-logout mt-1 bg-destructive text-destructive-foreground px-3 py-2 text-[0.6rem] border-2 border-destructive shadow-retro hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
           >
             CERRAR SESIÓN
           </button>
