@@ -398,8 +398,14 @@ export const GameMap = () => {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 pointer-events-auto">
           <div className="bg-[#111] border-2 border-primary p-5 sm:p-6 w-80 sm:w-96 flex flex-col gap-4 shadow-retro text-sm">
             <h2 className="text-primary text-center text-base">INSTRUCCIONES LIGHTBRINGER</h2>
-            <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer porta elementum lacus, vitae tincidunt libero interdum nec. Etiam at arcu at velit hendrerit auctor eu in sapien. Pellentesque habitant morbi tristique senectus et netus.
+            <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">             
+              ¡Las fuerzas de la luz te necesitan!<br></br>
+              ¡No compartas este mensaje con nadie!<br></br>
+              Cualquiera podria ser una entidad oscura…<br></br>
+              En caso de necesitarlo, debes iluminar al medium poseido para purificar la oscuridad en el.<br></br>
+              Tené preparado cualquier tipo de linterna a tu alcance.<br></br>
+              Espera pacientemente a que llegue el momento de iluminar un medium.<br></br>
+              Por ahora mantente sentado y observa, procura parecer uno mas de ellos…
             </p>
             <button
               onClick={() => setInfoModalOpen(false)}
