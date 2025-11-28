@@ -18,6 +18,18 @@
     );
 }
 
+.map-wrapper.lightbringer-mode {
+  background:
+    radial-gradient(circle at top, #2c1d00 0, transparent 55%),
+    repeating-linear-gradient(
+      0deg,
+      #120a00 0,
+      #120a00 2px,
+      #2c1c00 2px,
+      #2c1c00 4px
+    );
+}
+
 /* Ajustado el aspect-ratio y padding para mejor visualización */
 /* Lienzo del mapa con spacing interno que replica el SVG */
 .map-canvas {
@@ -31,6 +43,16 @@
   image-rendering: pixelated;
   padding: 2%;
   box-sizing: border-box;
+}
+
+.map-wrapper.lightbringer-mode .map-canvas {
+  background: rgba(15, 11, 0, 0.92);
+  border-color: #facc15;
+  box-shadow: 0 0 20px #facc15aa, 0 0 40px #facc1533 inset;
+}
+
+.map-wrapper.lightbringer-mode .shadow-retro {
+  box-shadow: 4px 4px 0 0 rgba(250, 204, 21, 0.55);
 }
 
 /* Scanlines */
@@ -58,8 +80,12 @@
   cursor: pointer;
   box-sizing: border-box;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.2rem;
+  text-align: center;
+  padding: 0.35rem;
   user-select: none;
 }
 
@@ -67,6 +93,17 @@
   background-color: rgba(255, 0, 180, 0.35);
   border-color: var(--accent);
   box-shadow: 0 0 8px #ff0099aa;
+}
+
+.map-wrapper.lightbringer-mode .zone {
+  border-color: #facc15;
+  background-color: rgba(250, 204, 21, 0.15);
+}
+
+.map-wrapper.lightbringer-mode .zone:hover {
+  background-color: rgba(250, 224, 71, 0.35);
+  border-color: #fde047;
+  box-shadow: 0 0 8px #facc15aa;
 }
 
 .zone-name {
@@ -80,39 +117,79 @@
   line-height: 1.2;
 }
 
-/* Mejorado el responsive manteniendo aspect ratio */
+.map-wrapper.lightbringer-mode .zone-name {
+  color: #facc15;
+}
+
 /* Badge de espíritus en las zonas */
 .espiritu-badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: linear-gradient(135deg, #ff0077 0%, #ff0099 100%);
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  border: 2px solid var(--primary);
-  box-shadow: 0 0 12px #ff0077, 0 0 6px #ff0077 inset;
-  animation: pulse-badge 2s ease-in-out infinite;
-  z-index: 10;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
   pointer-events: none;
 }
 
-@keyframes pulse-badge {
-  0%, 100% {
-    box-shadow: 0 0 12px #ff0077, 0 0 6px #ff0077 inset;
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 0 20px #ff0099, 0 0 10px #ff0099 inset;
-    transform: scale(1.05);
-  }
+.map-wrapper.lightbringer-mode .espiritu-badge {
+  color: #fef9c3;
+  text-shadow: 0 0 6px rgba(60, 45, 0, 0.9);
+}
+
+.zone-disabled {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.zone-disabled:hover {
+  background-color: rgba(255, 0, 128, 0.15);
+  border-color: var(--primary);
+  box-shadow: none;
+}
+
+.map-wrapper.lightbringer-mode .zone-disabled:hover {
+  background-color: rgba(250, 204, 21, 0.15);
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-trigger {
+  border-color: #facc15;
+  box-shadow: 4px 4px 0 0 rgba(250, 204, 21, 0.55);
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-panel {
+  background-color: rgba(35, 27, 4, 0.95);
+  border-color: #facc15;
+  color: #fef9c3;
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-panel .text-primary,
+.map-wrapper.lightbringer-mode .profile-menu-panel .text-accent {
+  color: #fde047;
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-panel .text-muted-foreground {
+  color: #fde68a;
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-class-button {
+  border-color: #fde047;
+  color: #fde047;
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-class-button:hover {
+  background-color: rgba(253, 224, 71, 0.15);
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-logout {
+  background-color: #facc15;
+  color: #1a1200;
+  border-color: #facc15;
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-logout:hover {
+  background-color: #fde047;
 }
 
 /* Responsive en pantallas chicas */
@@ -128,12 +205,7 @@
   }
 
   .espiritu-badge {
-    font-size: 0.6rem;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    top: -6px;
-    right: -6px;
+    font-size: 0.8rem;
   }
 }
 
@@ -151,13 +223,7 @@
   }
 
   .espiritu-badge {
-    font-size: 0.55rem;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
-    top: -5px;
-    right: -5px;
-    border-width: 1.5px;
+    font-size: 0.7rem;
   }
 
   /* Forzar saltos de línea en nombres largos específicos en mobile */
