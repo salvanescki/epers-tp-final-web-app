@@ -306,14 +306,14 @@ export const GameMap = () => {
                   transformOrigin: "center center",
                 }}
               >
+                {espiritusEnZonas.get(z.id)?.length ? (
+                  <span className="espiritu-badge">
+                    {`👻x${espiritusEnZonas.get(z.id)?.length}`}
+                  </span>
+                ) : null}
                 <span className="zone-name" data-zone={z.name}>
                   {z.name}
                 </span>
-                {espiritusEnZonas.get(z.id)?.length ? (
-                  <span className="espiritu-badge">
-                    {espiritusEnZonas.get(z.id)?.length}
-                  </span>
-                ) : null}
               </div>
             ))}
           </div>
