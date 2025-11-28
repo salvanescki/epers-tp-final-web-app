@@ -8,6 +8,7 @@ import { useAuth } from "../auth/useAuth"
 import { MAP_ZONES } from "../data/MAP_ZONES"
 import { spawnearEspiritu, getUbicaciones, getEspiritusEnUbicacion } from "../api/api.ts"
 import { ProfileMenu } from "./ProfileMenu"
+import { LoadingOverlay } from "./LoadingOverlay"
 import "../styles/game-map.css"
 
 export const GameMap = () => {
@@ -21,6 +22,7 @@ export const GameMap = () => {
   const [zonesWithRealIds, setZonesWithRealIds] = useState(MAP_ZONES)
   const [espiritusEnZonas, setEspiritusEnZonas] = useState<Map<number, any[]>>(new Map())
   const [infoModalOpen, setInfoModalOpen] = useState(false)
+  const [mapLoading, setMapLoading] = useState(true)
 
   // Estado de zoom/pan
   const [scale, setScale] = useState(1)
@@ -102,22 +104,27 @@ export const GameMap = () => {
 
   // Cargar ubicaciones del backend y mapear IDs reales
   useEffect(() => {
+    let isMounted = true
+    const eventSources: EventSource[] = []
+
     const loadUbicaciones = async () => {
       try {
         const ubicaciones = await getUbicaciones()
         const ubicacionesMap = new Map(ubicaciones.map((u: any) => [u.nombre, u.id]))
-        
+
         const updatedZones = MAP_ZONES.map((zone) => {
           const realId = ubicacionesMap.get(zone.name)
           return realId ? { ...zone, id: realId } : zone
         })
-        
-        setZonesWithRealIds(updatedZones)
 
-        // Cargar espíritus existentes en cada ubicación
+        if (isMounted) {
+          setZonesWithRealIds(updatedZones)
+        }
+
         const initialEspiritusMap = new Map<number, any[]>()
         await Promise.all(
           updatedZones.map(async (zone) => {
+            if (!zone.id) return
             try {
               const espiritus = await getEspiritusEnUbicacion(zone.id)
               if (espiritus.length > 0) {
@@ -128,48 +135,49 @@ export const GameMap = () => {
             }
           })
         )
-        setEspiritusEnZonas(initialEspiritusMap)
-        console.log('Espíritus iniciales cargados:', initialEspiritusMap)
 
-        // Suscribirse a eventos SSE para cada ubicación
-        const eventSources: EventSource[] = []
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+        if (isMounted) {
+          setEspiritusEnZonas(initialEspiritusMap)
+        }
+
+        if (!isMounted) return
+
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
 
         updatedZones.forEach((zone) => {
+          if (!zone.id || !isMounted) return
+
           const eventSource = new EventSource(`${baseUrl}/ubicacion/${zone.id}/stream`, {
-            withCredentials: true
+            withCredentials: true,
           })
-          
+
           eventSource.onopen = () => {
             console.log(`SSE conectado para ubicación ${zone.id}`)
           }
-          
+
           eventSource.onmessage = (event) => {
             try {
               const espiritu = JSON.parse(event.data)
-              console.log('Espíritu recibido via SSE:', espiritu)
-              
-              // Agregar el espíritu a la lista de esta zona
+              console.log("Espíritu recibido via SSE:", espiritu)
+
               setEspiritusEnZonas((prev) => {
                 const newMap = new Map(prev)
                 const currentList = newMap.get(zone.id) || []
-                
-                // Verificar si ya existe (por ID) para evitar duplicados
+
                 const exists = currentList.some((e: any) => e.id === espiritu.id)
                 if (!exists) {
                   newMap.set(zone.id, [...currentList, espiritu])
                 }
-                
+
                 return newMap
               })
             } catch (error) {
-              console.error('Error parseando mensaje SSE:', error)
+              console.error("Error parseando mensaje SSE:", error)
             }
           }
 
           eventSource.onerror = () => {
             console.warn(`SSE desconectado para ubicación ${zone.id}`)
-            // EventSource intenta reconectar automáticamente, pero si falla repetidamente lo cerramos
             if (eventSource.readyState === EventSource.CLOSED) {
               console.error(`Conexión SSE cerrada para ubicación ${zone.id}`)
             }
@@ -177,17 +185,21 @@ export const GameMap = () => {
 
           eventSources.push(eventSource)
         })
-
-        // Cleanup: cerrar todas las conexiones SSE cuando el componente se desmonte
-        return () => {
-          eventSources.forEach((es) => es.close())
-        }
       } catch (error) {
         console.error("Error cargando ubicaciones:", error)
-        // Si falla, usamos los IDs por defecto de MAP_ZONES
+      } finally {
+        if (isMounted) {
+          setMapLoading(false)
+        }
       }
     }
+
     loadUbicaciones()
+
+    return () => {
+      isMounted = false
+      eventSources.forEach((es) => es.close())
+    }
   }, [])
 
   // Redirigir si no hay clase elegida
@@ -249,6 +261,7 @@ export const GameMap = () => {
       className={`map-wrapper ${isLightBringer ? "lightbringer-mode" : ""}`}
       style={lightbringerThemeVars}
     >
+      <LoadingOverlay show={mapLoading} label="CARGANDO" />
       <div className="relative w-full h-screen overflow-hidden bg-background/80 text-foreground">
       {/* Lienzo del mapa con zoom/pan */}
       <div

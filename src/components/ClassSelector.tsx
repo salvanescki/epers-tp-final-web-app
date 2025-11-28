@@ -5,6 +5,7 @@ import { GhostLoader } from "./GhostLoader";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { crearNightBringer } from "../api/api";
+import { LoadingOverlay } from "./LoadingOverlay";
 
 // 🔥 Definí type afuera del componente
 export type PlayerClass = "nightbringer" | "lightbringer";
@@ -72,28 +73,30 @@ export const ClassSelector = () => {
       });
       return;
     }
+    setStarting(true);
     try {
       if (selectedClass === "nightbringer") {
         const nb = await crearNightBringer({ nombre: profile!.name! });
 
         if (!nb || !nb.id) {
           toast.error("Error creando NightBringer");
+          setStarting(false);
           return;
         }
 
         setNightBringerId(nb.id);
       }
-
-      setStarting(true);
       navigate("/game");
     } catch (err) {
       console.error("Error al crear NightBringer:", err);
       toast.error("No se pudo crear tu NightBringer");
+      setStarting(false);
     }
   };
 
   return (
     <div className="h-screen flex flex-col items-center justify-center p-4 scanlines overflow-hidden">
+      <LoadingOverlay show={starting} label="CARGANDO" />
       <div className="absolute inset-0 bg-[linear-gradient(rgba(180,70,80,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(180,70,80,0.05)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,black,transparent)]" />
 
       <div className="relative z-10 w-full max-w-md space-y-6">
