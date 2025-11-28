@@ -18,6 +18,18 @@
     );
 }
 
+.map-wrapper.lightbringer-mode {
+  background:
+    radial-gradient(circle at top, #2c1d00 0, transparent 55%),
+    repeating-linear-gradient(
+      0deg,
+      #120a00 0,
+      #120a00 2px,
+      #2c1c00 2px,
+      #2c1c00 4px
+    );
+}
+
 /* Ajustado el aspect-ratio y padding para mejor visualización */
 /* Lienzo del mapa con spacing interno que replica el SVG */
 .map-canvas {
@@ -31,6 +43,16 @@
   image-rendering: pixelated;
   padding: 2%;
   box-sizing: border-box;
+}
+
+.map-wrapper.lightbringer-mode .map-canvas {
+  background: rgba(15, 11, 0, 0.92);
+  border-color: #facc15;
+  box-shadow: 0 0 20px #facc15aa, 0 0 40px #facc1533 inset;
+}
+
+.map-wrapper.lightbringer-mode .shadow-retro {
+  box-shadow: 4px 4px 0 0 rgba(250, 204, 21, 0.55);
 }
 
 /* Scanlines */
@@ -73,6 +95,17 @@
   box-shadow: 0 0 8px #ff0099aa;
 }
 
+.map-wrapper.lightbringer-mode .zone {
+  border-color: #facc15;
+  background-color: rgba(250, 204, 21, 0.15);
+}
+
+.map-wrapper.lightbringer-mode .zone:hover {
+  background-color: rgba(250, 224, 71, 0.35);
+  border-color: #fde047;
+  box-shadow: 0 0 8px #facc15aa;
+}
+
 .zone-name {
   font-size: 0.85rem;
   color: var(--primary);
@@ -82,6 +115,10 @@
   font-weight: 500;
   text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
   line-height: 1.2;
+}
+
+.map-wrapper.lightbringer-mode .zone-name {
+  color: #facc15;
 }
 
 /* Badge de espíritus en las zonas */
@@ -94,6 +131,65 @@
   color: #fff;
   text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
   pointer-events: none;
+}
+
+.map-wrapper.lightbringer-mode .espiritu-badge {
+  color: #fef9c3;
+  text-shadow: 0 0 6px rgba(60, 45, 0, 0.9);
+}
+
+.zone-disabled {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.zone-disabled:hover {
+  background-color: rgba(255, 0, 128, 0.15);
+  border-color: var(--primary);
+  box-shadow: none;
+}
+
+.map-wrapper.lightbringer-mode .zone-disabled:hover {
+  background-color: rgba(250, 204, 21, 0.15);
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-trigger {
+  border-color: #facc15;
+  box-shadow: 4px 4px 0 0 rgba(250, 204, 21, 0.55);
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-panel {
+  background-color: rgba(35, 27, 4, 0.95);
+  border-color: #facc15;
+  color: #fef9c3;
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-panel .text-primary,
+.map-wrapper.lightbringer-mode .profile-menu-panel .text-accent {
+  color: #fde047;
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-panel .text-muted-foreground {
+  color: #fde68a;
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-class-button {
+  border-color: #fde047;
+  color: #fde047;
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-class-button:hover {
+  background-color: rgba(253, 224, 71, 0.15);
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-logout {
+  background-color: #facc15;
+  color: #1a1200;
+  border-color: #facc15;
+}
+
+.map-wrapper.lightbringer-mode .profile-menu-logout:hover {
+  background-color: #fde047;
 }
 
 /* Responsive en pantallas chicas */
