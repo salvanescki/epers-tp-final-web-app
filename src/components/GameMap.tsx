@@ -23,6 +23,7 @@ export const GameMap = () => {
   const [espiritusEnZonas, setEspiritusEnZonas] = useState<Map<number, any[]>>(new Map())
   const [infoModalOpen, setInfoModalOpen] = useState(false)
   const [mapLoading, setMapLoading] = useState(true)
+  const [spawning, setSpawning] = useState(false)
 
   // Estado de zoom/pan
   const [scale, setScale] = useState(1)
@@ -227,6 +228,7 @@ export const GameMap = () => {
       navigate("/dashboard")
       return
     }
+    setSpawning(true)
     try {
       await spawnearEspiritu(nightBringerId, selectedZone.id, nombreEspiritu || "Espíritu")
       setModalOpen(false)
@@ -253,6 +255,8 @@ export const GameMap = () => {
         // Cerramos el modal y dejamos registro en consola para no interrumpir la experiencia
         setModalOpen(false)
       }
+    } finally {
+      setSpawning(false)
     }
   }
 
@@ -449,17 +453,26 @@ export const GameMap = () => {
 
             <button
               onClick={spawn}
-              className="bg-primary text-white px-3 py-2 text-xs sm:text-sm border-2 border-primary hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              disabled={spawning}
+              className="bg-primary text-white px-3 py-2 text-xs sm:text-sm border-2 border-primary hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              SPAWNEAR
+              {spawning ? "SPAWNEANDO..." : "SPAWNEAR"}
             </button>
 
             <button
               onClick={() => setModalOpen(false)}
-              className="bg-destructive text-white px-3 py-2 text-xs sm:text-sm border-2 border-destructive hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              disabled={spawning}
+              className="bg-destructive text-white px-3 py-2 text-xs sm:text-sm border-2 border-destructive hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               CANCELAR
             </button>
+
+            {spawning && (
+              <div className="flex items-center gap-2 text-[0.6rem] text-primary">
+                <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                <span>Invocando espíritu...</span>
+              </div>
+            )}
           </div>
         </div>
       )}
